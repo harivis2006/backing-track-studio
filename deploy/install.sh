@@ -40,7 +40,8 @@ PYTHON="$(command -v python3.12 || echo "$BREW_BIN/python3.12")"
 
 # ---------------------------------------------------------------- the helper itself
 stop_helper() {  # stop the running helper and wait until it has really gone (a busy one takes a few seconds)
-  busy=$(curl -s -m 2 "http://127.0.0.1:$PORT/api/jobs" | grep -oE '"status": ?"(running|queued)"' | wc -l | tr -d ' ')
+  # (|| true: with no helper running, or no busy songs, these commands "fail", which must not stop the installer)
+  busy=$( { curl -s -m 2 "http://127.0.0.1:$PORT/api/jobs" || true; } | { grep -oE '"status": ?"(running|queued)"' || true; } | wc -l | tr -d ' ')
   if [ "${busy:-0}" -gt 0 ]; then say "$busy song(s) being split will start again after the update — nothing is lost."; fi
   launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
   for i in $(seq 1 30); do
