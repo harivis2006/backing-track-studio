@@ -10,7 +10,7 @@ MODELS = ROOT / "models"                                    # downloaded AI mode
 DATA = Path(os.environ.get("BTS_DATA", ROOT / "data"))       # one folder per song
 HOST = os.environ.get("BTS_HOST", "127.0.0.1")
 PORT = int(os.environ.get("BTS_PORT", 8765))
-VERSION = "1.2.0"
+VERSION = "1.2.1"
 
 # The hosted website that may use this helper (plus the helper's own page). Any other website is refused,
 # so a random page you visit can't control the helper. Add more with BTS_ALLOWED_ORIGINS="https://a,https://b".

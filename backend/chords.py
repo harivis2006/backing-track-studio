@@ -16,7 +16,7 @@ import urllib.request
 
 from .config import MODELS, log
 
-CHORDS_VERSION = 2  # bump to re-detect every song's chords after improving this
+CHORDS_VERSION = 3  # bump to re-detect every song's chords after improving this
 WEIGHTS = MODELS / "btc_model_large_voca.pt"
 WEIGHTS_URL = ("https://github.com/jayg996/BTC-ISMIR19/raw/2682317be668032e6e4b269ded36adaa2ad57df0/"
                "test/btc_model_large_voca.pt")
@@ -28,6 +28,7 @@ SR, HOP, BINS, PER_OCTAVE = 22050, 2048, 144, 24
 STEPS, CHUNK_SECONDS = 108, 10.0  # the model reads 10-second windows of 108 frames
 FRAME = CHUNK_SECONDS / STEPS
 PITCHED = ("bass", "piano", "guitar", "other", "winds", "vocals")
+BACKING = ("bass", "piano", "guitar", "other")  # the melody (vocals, sax / brass) is left out: its notes aren't the chords
 
 _model = None
 _lock = threading.Lock()
@@ -202,34 +203,51 @@ def label(idx: int):
     return (-1, "N") if idx in NO_CHORD else (idx // 14, QUALITIES[idx % 14])
 
 
-def segments_on_beats(logp, beats):
-    """One chord per beat (the frames in that beat vote), then tidy up: a lone one-beat chord between two
-    beats of the same chord is usually a passing note, so it's absorbed if that chord is nearly as likely."""
+# How much a chord change costs (in log-probability), by where in the bar it falls: songs mostly change chord
+# on the bar line, often half-way through, rarely on other beats. Tuned on test songs with known chords.
+CHANGE_COST = {"bar": 1.0, "half": 3.0, "beat": 10.0}
+# The model was trained mostly on pop and leans towards plain triads, so it often drops the 7th (Cm7 -> Cm).
+# A small boost for 6th/7th chords fixes most of that without adding 7ths to songs that are really triads.
+RICH_BOOST = 0.6
+RICH = {"min6", "maj6", "min7", "minmaj7", "maj7", "7", "dim7", "hdim7"}
+
+
+def segments_on_beats(logp, beats: dict):
+    """One chord per beat, chosen for the whole song at once (Viterbi): each beat's frames vote, and changing
+    chord costs more off the bar line. A passing note can't flip a single beat any more, but a real change
+    (even mid-bar) still wins when the music clearly moves."""
     import numpy as np
 
-    n = len(logp)
-    edges = [0.0, *beats, n * FRAME]
-    spans, picks, scores = [], [], []
-    for a, b in zip(edges, edges[1:]):
+    n, times = len(logp), beats["times"]
+    per_bar = beats.get("perBar") or 4
+    downbeats = set(beats.get("downbeats") or range(0, len(times), per_bar))
+    edges = [0.0, *times, n * FRAME]
+    spans, scores, cost = [], [], []
+    bar_start = 0
+    for i, (a, b) in enumerate(zip(edges, edges[1:])):
         lo, hi = int(a / FRAME), max(int(a / FRAME) + 1, int(b / FRAME))
         if lo >= n or b - a < 0.05:
             continue
-        s = logp[lo:min(hi, n)].mean(axis=0)  # average log-probability of each chord over this beat
-        spans.append((a, b)); picks.append(int(np.argmax(s))); scores.append(s)
-    for i in range(1, len(picks) - 1):
-        nb = picks[i - 1]
-        if nb == picks[i + 1] != picks[i] and scores[i][nb] > scores[i][picks[i]] - 1.0:  # within a factor of e
-            picks[i] = nb
-    root = lambda k: -1 if k in NO_CHORD else k // 14
-    for i in range(len(picks)):  # a one-beat flicker to a close relative (Bmaj7 -> B6 -> Bmaj7) joins its neighbour
-        before, after = picks[i - 1] if i else None, picks[i + 1] if i + 1 < len(picks) else None
-        if picks[i] in (before, after):
-            continue
-        for nb in (before, after):
-            if nb is not None and root(nb) == root(picks[i]) >= 0 and scores[i][nb] > scores[i][picks[i]] - 2.0:
-                picks[i] = nb
-                break
-    return _merge(spans, picks)
+        beat_idx = i - 1  # edges[0] is the song start, so span i starts at beat i-1
+        if beat_idx in downbeats:
+            bar_start = beat_idx
+        pos = beat_idx - bar_start
+        where = "bar" if beat_idx in downbeats or beat_idx < 0 else "half" if per_bar % 2 == 0 and pos == per_bar // 2 else "beat"
+        spans.append((a, b)); scores.append(logp[lo:min(hi, n)].mean(axis=0)); cost.append(CHANGE_COST[where])
+    if not spans:
+        return []
+    e = np.array(scores)
+    total, back = e[0].copy(), np.zeros(e.shape, dtype=np.int32)
+    for t in range(1, len(e)):
+        best = int(np.argmax(total))
+        switch = total[best] - cost[t]
+        stay = total >= switch
+        back[t] = np.where(stay, np.arange(e.shape[1]), best)
+        total = np.where(stay, total, switch) + e[t]
+    picks = [int(np.argmax(total))]
+    for t in range(len(e) - 1, 0, -1):
+        picks.append(int(back[t][picks[-1]]))
+    return _merge(spans, picks[::-1])
 
 
 def segments_free(logp):
@@ -259,16 +277,27 @@ def _merge(spans, picks):
     return segs
 
 
-def analyze_chords(jdir, beats: dict | None) -> dict:
-    """The song's chord changes: {"v", "list": [[start, end, root, quality], ...]} (root -1 = no chord)."""
+def harmony_mix(jdir):
+    """The backing parts, mono — or every pitched part if there's hardly any backing (e.g. solo sax)."""
+    import numpy as np
     from .analysis import _read_parts
 
-    mix = _read_parts(jdir, PITCHED, mono=True)
+    backing, everything = _read_parts(jdir, BACKING, mono=True), _read_parts(jdir, PITCHED, mono=True)
+    if backing is None or everything is None:
+        return everything
+    rms = lambda x: float(np.sqrt(np.mean(x.astype(np.float64) ** 2)) + 1e-9)
+    return backing if rms(backing) > 0.2 * rms(everything) else everything
+
+
+def analyze_chords(jdir, beats: dict | None) -> dict:
+    """The song's chord changes: {"v", "list": [[start, end, root, quality], ...]} (root -1 = no chord)."""
+    mix = harmony_mix(jdir)
     if mix is None:
         return {"v": CHORDS_VERSION, "list": []}
     logp = frame_probabilities(mix, 44100)
+    logp[:, [k for k in range(168) if QUALITIES[k % 14] in RICH]] += RICH_BOOST
     times = (beats or {}).get("times") or []
-    segs = segments_on_beats(logp, times) if len(times) >= 8 else segments_free(logp)
+    segs = segments_on_beats(logp, beats) if len(times) >= 8 else segments_free(logp)
     out = []
     for s in segs:
         root, quality = label(s["i"])
