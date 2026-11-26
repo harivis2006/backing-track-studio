@@ -15,6 +15,7 @@
   /* canvas colours (timeline.js) */
   --cv-tick:#d2d2d7; --cv-tick-major:#86868b; --cv-text:#86868b; --cv-playhead:#1d1d1f;
   --cv-loop:#0a84ff24; --cv-loop-edge:#0a84ffcc; --cv-sel:#1d1d1f10; --cv-sel-edge:#1d1d1f50; --cv-marker:#bf5af2; --cv-marker-line:#bf5af240;
+  --cv-chord:#f2f2f5; --cv-chord-text:#1d1d1f; --cv-chord-on:#0a84ff; --cv-chord-on-text:#fff;
   --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Inter","Segoe UI",Roboto,sans-serif;
   --mono:"SF Mono",ui-monospace,Menlo,monospace;
   --ctlw:300px; --side:300px;
@@ -26,7 +27,7 @@
     --acc-soft:#0a84ff26; --shh:0 18px 40px rgba(0,0,0,.6); --shm:0 10px 30px rgba(0,0,0,.5);
     --vocals:#ff375f; --winds:#ff9f0a; --guitar:#30d158; --piano:#7d7aff; --other:#64d2ff; --bass:#bf5af2; --drums:#c4a77d; --take:#0a84ff;
     --cv-tick:#3a3a3c; --cv-tick-major:#8e8e93; --cv-text:#8e8e93; --cv-playhead:#f5f5f7;
-    --cv-loop:#0a84ff33; --cv-sel:#f5f5f712; --cv-sel-edge:#f5f5f750;
+    --cv-loop:#0a84ff33; --cv-sel:#f5f5f712; --cv-sel-edge:#f5f5f750; --cv-chord:#2c2c2e; --cv-chord-text:#f5f5f7;
     color-scheme:dark;
   }
 }
@@ -245,6 +246,33 @@ footer label{color:var(--mute);display:flex;gap:8px;align-items:center;font-size
 #exportBtn,#exportGo{background:var(--acc);color:#fff;font-weight:600;padding:10px 22px}
 #exportBtn:hover:not(:disabled),#exportGo:hover:not(:disabled){background:var(--acc);transform:translateY(-2px) scale(1.03);box-shadow:0 12px 26px rgba(10,132,255,.4)}
 .hint{color:var(--mute);font-size:12px}
+
+/* ---------- chords: the lane under the ruler, now → next, the chart */
+.chordrow{position:sticky;top:40px;z-index:3;background:var(--tile)!important;border-radius:0;margin:0 -8px;padding:0 8px 5px;box-shadow:0 1px 0 var(--line)}
+.chordrow[hidden]{display:none}
+.chordrow .wavewrap{height:34px}
+#chordCanvas{height:34px;width:100%;display:block;cursor:pointer}
+.chordrow .ctl{gap:6px}
+#chordMode,#chartBtn{padding:0 10px;height:24px;font-size:12px}
+#chordNow{display:flex;align-items:baseline;gap:8px;background:var(--soft);border-radius:99px;padding:7px 16px;white-space:nowrap;min-width:0}
+#chordNow[hidden]{display:none}
+#chordNow b{font-size:19px;font-weight:700;letter-spacing:-.02em;color:var(--acc)}
+#chordNow span{font-size:13px;color:var(--mute);font-weight:500}
+#fsChord{font-weight:700;letter-spacing:-.01em}
+#fsChord:empty{display:none}
+#chartDlg{max-width:900px;padding:22px 24px}
+.charthead{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}
+.charthead h3{margin:0 0 2px}
+#chartGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-height:62vh;overflow:auto;padding:2px}
+#chartGrid .bar{position:relative;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px 10px;min-height:62px;border-radius:14px;padding:16px 8px 10px;background:var(--soft);
+  font-size:19px;font-weight:700;letter-spacing:-.02em;text-align:center}
+#chartGrid .bar small{position:absolute;top:5px;left:9px;font-size:10px;font-weight:600;color:var(--faint);letter-spacing:0}
+#chartGrid .bar.sim span{color:var(--faint);font-weight:500}
+#chartGrid .bar.nc span{color:var(--faint);font-size:14px;font-weight:500}
+#chartGrid .bar:nth-child(4n+1){box-shadow:inset 3px 0 0 var(--line2)}
+#chartGrid .bar.now{background:var(--acc);color:#fff;box-shadow:0 8px 20px rgba(10,132,255,.3)}
+#chartGrid .bar.now small,#chartGrid .bar.now.sim span{color:#ffffffb0}
+#chartDlg>.hint{margin:14px 0 0}
 
 /* ---------- toasts, menus & dialogs */
 #toasts{position:fixed;right:22px;bottom:80px;display:flex;flex-direction:column;gap:8px;z-index:40;max-width:400px}

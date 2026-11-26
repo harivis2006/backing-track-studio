@@ -3,6 +3,7 @@
     stems:  per part, a waveform overview + loudness (quiet parts are marked "not in this song")
     beats:  beat times, bar starts and tempo — for the ruler, loops, count-in and metronome
     key:    the overall key (shown written for your instrument)
+    chords: the chord changes, lined up with the beats (see chords.py)
 
 Older songs are brought up to date automatically (see ensure_analysis / BEATS_VERSION).
 """
@@ -13,6 +14,7 @@ import traceback
 from pathlib import Path
 
 from . import jobs
+from .chords import CHORDS_VERSION, analyze_chords
 from .config import PEAK_COLUMNS, SILENT_DB, STEMS
 from .util import atomic_write_json
 
@@ -60,6 +62,7 @@ def compute_peaks(jdir: Path) -> dict:
                               "db": round(db, 1), "silent": bool(db < SILENT_DB)}
     for field, analyse in (("beats", analyze_beats), ("key", analyze_key)):
         out[field] = _safely(analyse, jdir)
+    out["chords"] = _safely(lambda d: analyze_chords(d, out.get("beats")), jdir)
     atomic_write_json(jdir / "peaks.json", out)
     return out
 
@@ -214,9 +217,12 @@ def ensure_analysis(job_id: str) -> dict:
         data = json.loads(path.read_text()) if path.exists() else compute_peaks(jdir)
         stale = [(field, fn) for field, fn in (("beats", analyze_beats), ("key", analyze_key))
                  if field not in data or (field == "beats" and (data.get("beats") or {}).get("v") != BEATS_VERSION)]
-        if stale:
+        chords_stale = bool(stale) and any(f == "beats" for f, _ in stale) or (data.get("chords") or {}).get("v") != CHORDS_VERSION
+        if stale or chords_stale:
             for field, fn in stale:
                 data[field] = _safely(fn, jdir)
+            if chords_stale:  # chords are lined up with the beats, so they're redone when the beats are
+                data["chords"] = _safely(lambda d: analyze_chords(d, data.get("beats")), jdir)
             atomic_write_json(path, data)
         job = jobs.jobs.get(job_id)
         if job and not job.get("duration") and data.get("duration"):

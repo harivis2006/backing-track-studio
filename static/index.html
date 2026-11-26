@@ -44,6 +44,7 @@
       </div>
       <button class="iconbtn" id="libToggle" title="Show / hide your tracks">☰</button>
       <div class="titles"><h2 id="title"></h2><div id="source"></div></div>
+      <div id="chordNow" hidden title="The chord playing now → the next one"></div>
       <div id="time"><b id="tNow">0:00</b> / <span id="tDur">0:00</span><span id="barbeat"></span></div>
       <button class="iconbtn" id="videoToggle" title="Show / hide the video (V)">Video</button>
       <button class="iconbtn" id="settingsBtn" title="Settings">⚙︎</button>
@@ -56,7 +57,7 @@
         <button id="vidFull" title="Fullscreen (F)" aria-label="Fullscreen"><svg viewBox="0 0 16 16"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg></button>
         <button id="vidHide" title="Hide the video (V)" aria-label="Hide video"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
       </div>
-      <div class="fsbar"><button id="fsPlay" aria-label="Play / pause">▶</button><span id="fsTime">0:00</span><span class="fshint">Space plays · F or Esc exits fullscreen</span></div>
+      <div class="fsbar"><button id="fsPlay" aria-label="Play / pause">▶</button><span id="fsTime">0:00</span><span id="fsChord"></span><span class="fshint">Space plays · F or Esc exits fullscreen</span></div>
       <div id="vidGrip" role="separator" aria-orientation="horizontal" aria-label="Resize video" tabindex="0" title="Drag to resize the video · double-click to reset"></div>
     </div>
     <div class="toolbar">
@@ -82,6 +83,7 @@
     <div id="rows">
       <div id="loadingBar"></div>
       <div class="row ruler"><div class="ctl"><span id="tempoLabel"></span><span class="zoomctl"><span id="zoomLabel"></span><button id="zoomOut" title="Zoom out (Shift+Z fits the whole song)">−</button><button id="zoomIn" title="Zoom in (Z) — or pinch / ⌘-scroll on the waveforms">+</button><button id="zoomFit" title="Show the whole song (Shift+Z)" hidden>Fit</button><button id="addMarker" title="Add a marker at the playhead (M) — or double-click the ruler"><span class="wide">+ Marker</span><span class="narrow">⚑</span></button></span></div><div class="wavewrap" style="height:32px"><canvas id="ruler"></canvas></div></div>
+      <div class="row chordrow" id="chordRow" hidden><div class="ctl"><span class="lbl">Chords</span><span class="zoomctl"><button id="chordMode" hidden></button><button id="chartBtn" title="Chord chart (H)">Chart</button></span></div><div class="wavewrap"><canvas id="chordCanvas"></canvas></div></div>
       <div id="stemRows"></div>
       <div id="takeRows"></div>
       <div id="hoverline"></div>
@@ -181,6 +183,13 @@
   <div class="dlgbtns"><button onclick="this.closest('dialog').close()">Cancel</button><button id="exportGo">Export</button></div>
 </dialog>
 
+<dialog id="chartDlg" aria-label="Chord chart">
+  <div class="charthead"><div><h3>Chord chart</h3><div class="hint"><span id="chartTitle"></span> · <span id="chartMeta"></span></div></div>
+    <button onclick="this.closest('dialog').close()">Done</button></div>
+  <div id="chartGrid"></div>
+  <p class="hint">Chords are detected automatically, so check anything that sounds off. Click a bar to jump there · % = same as the bar before.</p>
+</dialog>
+
 <dialog id="help">
   <h3>Keyboard shortcuts</h3>
   <table>
@@ -196,6 +205,7 @@
     <tr><td><kbd>-</kbd> <kbd>=</kbd></td><td>Key down / up a semitone</td></tr>
     <tr><td><kbd>V</kbd> · <kbd>F</kbd></td><td>Show / hide the video · video fullscreen (drag the bar under the video to resize it)</td></tr>
     <tr><td><kbd>A</kbd></td><td>A/B: compare with the original song</td></tr>
+    <tr><td><kbd>H</kbd></td><td>Chord chart</td></tr>
     <tr><td><kbd>E</kbd></td><td>Export…</td></tr>
     <tr><td><kbd>M</kbd> · <kbd>,</kbd> <kbd>.</kbd></td><td>Add a marker · jump to previous / next marker</td></tr>
     <tr><td><kbd>Z</kbd> · <kbd>Shift</kbd>+<kbd>Z</kbd></td><td>Zoom in (to the loop, if there is one) · show the whole song</td></tr>
@@ -233,6 +243,7 @@
 <script src="/static/js/keyboard.js"></script>
 <script src="/static/js/export.js"></script>
 <script src="/static/js/tools.js"></script>
+<script src="/static/js/chords.js"></script>
 <script src="/static/js/palette.js"></script>
 <script src="/static/js/bento.js"></script>
 <script src="/static/js/app.js"></script>

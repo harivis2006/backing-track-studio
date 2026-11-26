@@ -6,7 +6,7 @@ How a song flows through the code:
     pipeline.py   a single worker thread takes jobs off the queue and runs:
         sources.py      get the audio (upload / YouTube / Spotify->YouTube), keep any video
         separation.py   AI split: 6 parts, then sax/brass out of "other"  (7 parts total)
-        analysis.py     waveforms, beats & bars, key  ->  peaks.json
+        analysis.py     waveforms, beats & bars, key, chords (chords.py)  ->  peaks.json
     api.py        the page then streams the parts and asks for extras:
         practice.py     slowed-down / transposed versions
         takes.py        recordings of you playing along

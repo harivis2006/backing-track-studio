@@ -14,7 +14,7 @@ function teardown() {
   if (abSaved) { abSaved = null; $("#abBtn").setAttribute("aria-pressed", false); $("#abNote").style.display = "none"; }
   stopAll(); playing = false;
   for (const p of allParts()) { try { p.gain?.disconnect(); } catch {} }
-  stems = []; takes = []; beats = null; rawBeats = null; beatOv = {}; markers = []; songKey = null; syncToggles(); $("#tempoMenu")?.remove();
+  stems = []; takes = []; beats = null; rawBeats = null; beatOv = {}; markers = []; songKey = null; setChords([]); syncToggles(); $("#tempoMenu")?.remove();
   $("#stemRows").innerHTML = ""; $("#takeRows").innerHTML = ""; $("#tempoLabel").textContent = "";
 }
 const abFlag = (p, k) => abSaved ? (abSaved.find(x => x[0] === p)?.[k] ?? (k === 1 ? p.mute : p.solo)) : (k === 1 ? p.mute : p.solo);
@@ -59,7 +59,7 @@ async function openJob(id) {
   if (token !== loadToken) return;
   duration = peaks.duration || job.duration || 0;
   rawBeats = peaks.beats; beatOv = st.beatOv || {}; beats = buildGrid(rawBeats, beatOv);
-  songKey = peaks.key || null; markers = Array.isArray(st.markers) ? st.markers.filter(m => m.t < duration) : [];
+  songKey = peaks.key || null; setChords(peaks.chords?.list); markers = Array.isArray(st.markers) ? st.markers.filter(m => m.t < duration) : [];
   setView(st.viewA ?? 0, st.viewB && st.viewB <= duration + 0.01 ? st.viewB : duration, {keep:true}); updateKeyName();
   updateTempoLabel();
   stems = job.stems.map(name => buildRow(name, peaks.stems[name], st));

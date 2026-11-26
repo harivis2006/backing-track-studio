@@ -2,6 +2,7 @@
 // Key display, zoom buttons, renaming and searching tracks, quitting — then start the app.
 
 function updateKeyName() {
+  refreshChordText();  // chord names follow the key and your instrument too
   const el = $("#keyName");
   if (!songKey) { el.textContent = ""; return; }
   const maj = (songKey.major + rateSemis + 120) % 12, min = (maj + 9) % 12;

@@ -12,6 +12,8 @@ Everything runs locally on your Mac — the AI models run on Apple Silicon's GPU
 - **YouTube links** (keeps the video, plays in sync) and **Spotify links** (finds the same recording on YouTube)
 - **Practice tools:** speed 50–120% without changing pitch, key ±12 semitones, loops that snap to the beat,
   section markers, count-in, metronome, A/B against the original, zoomable waveforms
+- **Chord changes:** detected for every song, shown under the timeline (now → next in the header) and as a
+  chord chart (H), written for your instrument and following key changes
 - **Your instrument:** new songs open with your part muted; keys are shown written for E♭ / B♭ / F instruments
 - **Record yourself** over the track (with latency correction, mic level meter, multiple takes)
 - **Export** MP3 / WAV / video, optionally with a count-in, or every part as separate WAVs for a DAW
@@ -55,7 +57,7 @@ Settings via environment variables: `BTS_PORT` (default 8765), `BTS_HOST` (defau
 page (static/)  ──upload / link──▶  api.py ──▶ queue ──▶ pipeline.py (one song at a time)
                                                    1. sources.py     get audio (upload / YouTube / Spotify→YouTube)
                                                    2. separation.py  BS-RoFormer SW → 6 parts; UVR HP-Wind → sax/brass
-                                                   3. analysis.py    waveforms, beats & bars (Beat This!), key
+                                                   3. analysis.py    waveforms, beats & bars (Beat This!), key, chords (chords.py, BTC)
 page ◀── parts (FLAC), peaks.json ◀── api.py ◀── practice.py (speed/key versions), takes.py, exports.py
 ```
 
@@ -77,6 +79,7 @@ page ◀── parts (FLAC), peaks.json ◀── api.py ◀── practice.py (
   **BS-RoFormer SW** by jarredou (weights licensed **CC BY-NC-SA 4.0 — non-commercial**) and the
   **UVR HP-Wind** model from [Ultimate Vocal Remover](https://github.com/Anjok07/ultimatevocalremovergui)
 - Beats & bars: [Beat This!](https://github.com/CPJKU/beat_this) (CPJKU, MIT)
+- Chords: [BTC](https://github.com/jayg996/BTC-ISMIR19) — Bi-directional Transformer for Chord recognition (Park et al., MIT)
 - Speed / key: Rubber Band via Spotify's [pedalboard](https://github.com/spotify/pedalboard) (GPLv3)
 - Downloads: [yt-dlp](https://github.com/yt-dlp/yt-dlp)
 
