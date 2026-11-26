@@ -30,7 +30,7 @@ It installs the helper into `~/Library/Application Support/Backing Track Studio`
 **Backing Track Studio Helper** to Applications. Remove it with `…/uninstall.sh | bash` (add `-s -- --all` to also
 delete your songs). The helper only accepts requests from the website and from its own page.
 
-To publish a new version of the site: `python3 deploy/build_site.py`, then deploy the `site/` folder.
+The site redeploys automatically on every push to `main` (Vercel runs `deploy/build_site.py`).
 
 ## Running it from source
 
@@ -66,7 +66,8 @@ page ◀── parts (FLAC), peaks.json ◀── api.py ◀── practice.py (
 | `static/index.html`, `static/css/app.css` | The page |
 | `static/js/` | The front end, one file per feature — see `static/js/README.md` |
 | `macos/` | Double-click launcher app |
-| `deploy/` | Website build script, installer / uninstaller, hosting settings |
+| `deploy/` | Website build script, installer / uninstaller |
+| `vercel.json` | Hosting settings: Vercel builds the static site from `deploy/build_site.py` on every push |
 | `data/` | Your songs (one folder each; not in git) |
 | `models/` | Downloaded AI model weights (not in git) |
 

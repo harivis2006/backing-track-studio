@@ -3,9 +3,9 @@
     site/index.html, site/static/...   the app's page (talks to the helper on the visitor's Mac)
     site/install.sh, uninstall.sh      one-line installer / uninstaller for the helper
     site/helper.zip                    the helper itself (backend + page), downloaded by install.sh
-    site/vercel.json                   hosting settings
 
 Run:  python3 deploy/build_site.py      (the site URL comes from backend/config.py SITE_URL)
+Vercel runs this automatically on every push (see vercel.json).
 """
 
 import re
@@ -46,7 +46,6 @@ def main() -> None:
     with zipfile.ZipFile(OUT / "helper.zip", "w") as z:
         for name in HELPER_FILES:
             add_to_zip(z, ROOT / name)
-    shutil.copy(ROOT / "deploy" / "vercel.json", OUT / "vercel.json")
     size = sum(f.stat().st_size for f in OUT.rglob("*") if f.is_file())
     print(f"built {OUT} for {url} ({size / 1024:.0f} KB, helper.zip {(OUT / 'helper.zip').stat().st_size / 1024:.0f} KB)")
 
