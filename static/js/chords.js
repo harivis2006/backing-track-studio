@@ -23,11 +23,10 @@ function setChords(detected, mine = null) {
   syncChordsVisible();
 }
 function syncChordsVisible() {
-  $("#chordRow").hidden = !chordsShown();
   $("#chartBtn").disabled = !hasChords();
   $("#chordsBtn").hidden = !hasChords();
   $("#chordsBtn").setAttribute("aria-pressed", prefs.chordsOn !== false);
-  syncChordMode(); updateChordNow.force = true; updateChordNow(); drawChords();
+  syncChordMode(); if (typeof syncLanes === "function") syncLanes(); updateChordNow.force = true; updateChordNow(); drawChords();
   requestAnimationFrame(() => typeof drawAll === "function" && drawAll());
 }
 $("#chordsBtn").onclick = () => { prefs.chordsOn = prefs.chordsOn === false; savePrefs(); syncChordsVisible(); };
@@ -130,7 +129,7 @@ function parseLine(text, prevBar) {
 // ---- the lane: one block per chord; names are placed left to right wherever they fit (a name may run over
 // the next few short blocks), and the chord playing now is always named, filled in blue
 function drawChords() {
-  const c = $("#chordCanvas"); if (!c || $("#chordRow").hidden || !duration) return;
+  const c = $("#chordCanvas"); if (!c || c.hidden || $("#chordRow").hidden || !duration) return;
   const dpr = devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
   if (c.width !== Math.round(w * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
   const g = c.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);

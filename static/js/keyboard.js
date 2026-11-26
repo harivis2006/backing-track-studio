@@ -2,11 +2,13 @@
 // Keyboard shortcuts (press ? in the app for the list).
 
 document.addEventListener("keydown", e => {
-  if (document.querySelector("dialog[open]")) { if (e.key === "?") document.querySelector("dialog[open]").close(); return; }
+  const modal = document.querySelector("dialog[open]:not(.tuner)");  // the tuner floats: shortcuts keep working
+  if (modal) { if (e.key === "?") modal.close(); return; }
   const tag = e.target.tagName;
   if (tag === "INPUT" && !["range", "checkbox"].includes(e.target.type) || tag === "TEXTAREA" || tag === "SELECT") return;
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.key === "?") { $("#help").showModal(); e.preventDefault(); return; }
+  if ((e.key === "t" || e.key === "T") && !e.repeat) { e.preventDefault(); openTuner(); return; }
   if (!current || !stems.length) return;
   const k = e.key;
   if (k === " ") { e.preventDefault(); toggle(); }

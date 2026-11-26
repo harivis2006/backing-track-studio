@@ -33,6 +33,7 @@ function paletteCommands() {
     add("Practice", `${prefs.countIn ? "Turn off" : "Turn on"} the count-in`, () => $("#countInBtn").click(), {keys: "C", off: !beats});
     add("Practice", `Loop ${loopOn() ? "off" : "on"}`, () => { $("#loop").checked = !$("#loop").checked; $("#loop").onchange(); }, {keys: "L", off: loopA === null});
     add("Practice", "Add a marker here", () => addMarker(), {keys: "M"});
+    sections.forEach((s, i) => add("Form", `Loop ${s.name}`, () => loopSection(i), {hint: `${fmt(s.t)}–${fmt(s.e)}`}));
     for (const m of markers) add("Markers", `Go to “${m.name}”`, () => seek(m.t), {hint: fmt(m.t)});
     add("View", "Show the whole song", () => setView(0, duration), {keys: "⇧Z"});
     if (hasChords()) {
@@ -49,6 +50,7 @@ function paletteCommands() {
     add("File", "Export…", openExport, {keys: "E"});
     add("File", "Rename this song", () => $("#title").ondblclick());
   }
+  add("App", tunerDlg.open ? "Close the tuner" : "Tuner", openTuner, {keys: "T"});
   add("App", "Settings", () => $("#settingsBtn").click());
   add("App", "Keyboard shortcuts", () => $("#help").showModal(), {keys: "?"});
   return cmds;
@@ -81,7 +83,7 @@ function renderPalette() {
 }
 function openPalette() {
   if (palette.open) { palette.close(); return; }
-  document.querySelector("dialog[open]")?.close();
+  document.querySelector("dialog[open]:not(.tuner)")?.close();
   palInput.value = ""; palSel = 0; renderPalette(); palette.showModal(); palInput.focus();
 }
 function runPalette(i) {

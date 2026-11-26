@@ -62,7 +62,8 @@ function readTheme() {
   cv = {tick:css("--cv-tick"), tickMajor:css("--cv-tick-major"), text:css("--cv-text"), playhead:css("--cv-playhead"),
         loop:css("--cv-loop"), loopEdge:css("--cv-loop-edge"), sel:css("--cv-sel"), selEdge:css("--cv-sel-edge"),
         marker:css("--cv-marker"), markerLine:css("--cv-marker-line"),
-        laneFont:`600 12.5px ${css("--font") || "sans-serif"}`, chord:css("--cv-chord"), chordText:css("--cv-chord-text"), chordOn:css("--cv-chord-on"), chordOnText:css("--cv-chord-on-text")};
+        laneFont:`600 12.5px ${css("--font") || "sans-serif"}`, chord:css("--cv-chord"), chordText:css("--cv-chord-text"), chordOn:css("--cv-chord-on"), chordOnText:css("--cv-chord-on-text"),
+        formFont:`600 11.5px ${css("--font") || "sans-serif"}`, formText:css("--cv-form-text")};
   for (const p of allParts()) { p.color = css(p.isTake ? "--take" : `--${p.name}`) || p.color; p.cache = null; }
 }
 readTheme();
@@ -111,7 +112,7 @@ function drawAll() {
   // keep the playhead on screen while playing (page forward like a DAW)
   if (playing && followView && viewLen() < duration - 0.01 && (pos > view.b - viewLen() * 0.03 || pos < view.a))
     setView(pos - viewLen() * 0.05, pos - viewLen() * 0.05 + viewLen(), {keep: true});
-  drawRuler(); drawChords();
+  drawRuler(); drawChords(); drawSections();
   for (const p of allParts()) {
     const c = p.canvas; if (!c) continue;
     if (!p.cache || p.cache.w !== c.clientWidth || p.cache.h !== c.clientHeight || p.cache.key !== cacheKey(p)) renderWaveCache(p);
@@ -168,9 +169,9 @@ function loopMarker(m) {
   seek(loopA); saveState();
 }
 function jumpMarker(dir) {
-  const t = curPos();
-  const m = dir > 0 ? markers.find(o => o.t > t + 0.25) : [...markers].reverse().find(o => o.t < t - 0.75);
-  if (m) seek(m.t); else if (dir < 0) seek(loopOn() ? loopA : 0);
+  const t = curPos(), stops = [...markers.map(m => m.t), ...sections.map(s => s.t)].sort((a, b) => a - b);
+  const to = dir > 0 ? stops.find(x => x > t + 0.25) : stops.findLast(x => x < t - 0.75);
+  if (to !== undefined) seek(to); else if (dir < 0) seek(loopOn() ? loopA : 0);
 }
 
 // ---- mouse: click to seek, drag to select, drag edges, wheel to zoom/scroll
@@ -265,7 +266,8 @@ function showHover(x, y, t, extra = "") {
 function hideHover() { if (!drag) { $("#hovertip").style.display = "none"; $("#hoverline").style.display = "none"; } }
 function updateLoopHint() {
   const has = loopA !== null;
-  $("#loopHint").textContent = has ? `Section ${fmt(loopA)}–${fmt(loopB)}${beats ? ` (${barsIn(loopA, loopB)})` : ""}${loopOn() ? (playing && loopPass > 1 ? ` · pass ${loopPass}` : "") : " · loop off"}`
+  const name = has && typeof loopName === "function" ? loopName() : "";
+  $("#loopHint").textContent = has ? `${name ? `${name} · ` : "Section "}${fmt(loopA)}–${fmt(loopB)}${beats ? ` (${barsIn(loopA, loopB)})` : ""}${loopOn() ? (playing && loopPass > 1 ? ` · pass ${loopPass}` : "") : " · loop off"}`
                                    : "Drag across a waveform or the ruler to select a section";
   $("#clearLoop").style.display = has ? "inline-block" : "none";
   $("#loop").disabled = !has;

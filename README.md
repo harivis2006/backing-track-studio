@@ -15,6 +15,9 @@ Everything runs locally on your Mac — the AI models run on Apple Silicon's GPU
 - **Chord changes:** detected for every song, shown under the timeline (now → next in the header) and as a
   chord chart (H), written for your instrument and following key changes; fix any chord by typing it
   (Edit chords in the chart, or double-click a chord in the lane) — your fixes are saved with the song
+- **Song form:** each time through the tune ("Chorus 1, 2, 3…" — the 32-bar AABA, the blues, the form under a
+  solo) is found and shown above the chords; click one to loop it, Shift-click to loop several
+- **Tuner (T):** floats over the studio while you play; shows the note written for your instrument and the cents
 - **Your instrument:** new songs open with your part muted; keys are shown written for E♭ / B♭ / F instruments
 - **Record yourself** over the track (with latency correction, mic level meter, multiple takes)
 - **Export** MP3 / WAV / video, optionally with a count-in, or every part as separate WAVs for a DAW
@@ -58,7 +61,7 @@ Settings via environment variables: `BTS_PORT` (default 8765), `BTS_HOST` (defau
 page (static/)  ──upload / link──▶  api.py ──▶ queue ──▶ pipeline.py (one song at a time)
                                                    1. sources.py     get audio (upload / YouTube / Spotify→YouTube)
                                                    2. separation.py  BS-RoFormer SW → 6 parts; UVR HP-Wind → sax/brass
-                                                   3. analysis.py    waveforms, beats & bars (Beat This!), key, chords (chords.py, BTC)
+                                                   3. analysis.py    waveforms, beats & bars (Beat This!), key, chords (chords.py, BTC), form (sections.py)
 page ◀── parts (FLAC), peaks.json ◀── api.py ◀── practice.py (speed/key versions), takes.py, exports.py
 ```
 

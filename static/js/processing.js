@@ -10,7 +10,7 @@ const STEPS = [
   {title: "Get the song", sub: "Download or read the file"},
   {title: "Split into parts", sub: "Vocals, guitar, piano, bass, drums"},
   {title: "Find the sax & brass", sub: "Pulls winds out of everything else"},
-  {title: "Beats, key & chords", sub: "So loops, the click and the chart line up"},
+  {title: "Beats, chords & form", sub: "So loops, the click and the chart line up"},
 ];
 const TIPS = [
   ["⌘K", "Jump to any song or command from anywhere."],

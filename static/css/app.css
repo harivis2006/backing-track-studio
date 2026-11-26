@@ -15,7 +15,7 @@
   /* canvas colours (timeline.js) */
   --cv-tick:#d2d2d7; --cv-tick-major:#86868b; --cv-text:#86868b; --cv-playhead:#1d1d1f;
   --cv-loop:#0a84ff24; --cv-loop-edge:#0a84ffcc; --cv-sel:#1d1d1f10; --cv-sel-edge:#1d1d1f50; --cv-marker:#bf5af2; --cv-marker-line:#bf5af240;
-  --cv-chord:#f2f2f5; --cv-chord-text:#1d1d1f; --cv-chord-on:#0a84ff; --cv-chord-on-text:#fff;
+  --cv-chord:#f2f2f5; --cv-chord-text:#1d1d1f; --cv-form-text:#6e6e73; --cv-chord-on:#0a84ff; --cv-chord-on-text:#fff;
   --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Inter","Segoe UI",Roboto,sans-serif;
   --mono:"SF Mono",ui-monospace,Menlo,monospace;
   --ctlw:300px; --side:300px;
@@ -27,7 +27,7 @@
     --acc-soft:#0a84ff26; --active-bg:color-mix(in srgb,#0a84ff 15%,#1c1c1e); --shh:0 18px 40px rgba(0,0,0,.6); --shm:0 10px 30px rgba(0,0,0,.5);
     --vocals:#ff375f; --winds:#ff9f0a; --guitar:#30d158; --piano:#7d7aff; --other:#64d2ff; --bass:#bf5af2; --drums:#c4a77d; --take:#0a84ff;
     --cv-tick:#3a3a3c; --cv-tick-major:#8e8e93; --cv-text:#8e8e93; --cv-playhead:#f5f5f7;
-    --cv-loop:#0a84ff33; --cv-sel:#f5f5f712; --cv-sel-edge:#f5f5f750; --cv-chord:#2c2c2e; --cv-chord-text:#f5f5f7;
+    --cv-loop:#0a84ff33; --cv-sel:#f5f5f712; --cv-sel-edge:#f5f5f750; --cv-chord:#2c2c2e; --cv-chord-text:#f5f5f7; --cv-form-text:#a1a1a6;
     color-scheme:dark;
   }
 }
@@ -232,8 +232,13 @@ header h2{margin:0;font-size:21px;font-weight:700;letter-spacing:-.025em;white-s
 .row.empty .ctl>*:not(.sw):not(.nm){visibility:hidden}
 .row.empty .sw{opacity:.25}
 .row.empty .nm{opacity:.45}
-.wavewrap{position:relative;padding-right:14px;height:58px}
-.wave{height:58px;width:100%;display:block;cursor:pointer}
+.wavewrap{position:relative;padding-right:14px;height:var(--wave-h,58px);transition:height .25s var(--ease)}
+.wave{height:100%;width:100%;display:block;cursor:pointer}
+/* short lanes (lots of parts, or a big video): one line per part, smaller buttons */
+#rows.compact .row{margin-top:4px;border-radius:12px}
+#rows.compact .ctl{padding-top:2px;padding-bottom:2px}
+#rows.compact .nm small{display:none}
+#rows.compact .ms{width:26px;height:22px;border-radius:7px;font-size:10.5px}
 .row.empty .wave{opacity:0;cursor:default}
 .takehead{padding:18px 8px 2px;display:flex;gap:10px;align-items:baseline;font-size:13px;color:var(--ink);font-weight:700}
 .takehead .hint{font-weight:400}
@@ -268,6 +273,9 @@ footer label{color:var(--mute);display:flex;gap:8px;align-items:center;font-size
 .chordrow[hidden]{display:none}
 .chordrow .wavewrap{height:34px}
 #chordCanvas{height:34px;width:100%;display:block;cursor:pointer}
+.chordrow .wavewrap{height:auto}
+#formCanvas{height:22px;width:100%;display:block;cursor:pointer;margin:1px 0 4px}
+#formCanvas[hidden],#chordCanvas[hidden]{display:none}
 .chordrow .ctl{gap:6px}
 #chordMode,#chartBtn{padding:0 10px;height:24px;font-size:12px}
 #chordNow{display:flex;align-items:baseline;gap:8px;background:var(--soft);border-radius:99px;padding:7px 16px;white-space:nowrap;min-width:0}
@@ -586,3 +594,28 @@ body.nolib{grid-template-columns:0 1fr;gap:0} body.nolib aside{visibility:hidden
   *,*::before,*::after{animation:none!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
   [data-r]{opacity:1;transform:none}
 }
+
+/* ---------- tuner: floats top-right over the studio, so you can keep playing */
+dialog.tuner{position:fixed;inset:76px 22px auto auto;margin:0;width:300px;padding:16px 20px 18px;border-radius:24px;z-index:50;
+  box-shadow:0 24px 60px rgba(0,0,0,.22),0 0 0 1px var(--line);--half:118px;--tc:var(--mute)}
+dialog.tuner[data-tune=good]{--tc:var(--ok)}
+dialog.tuner[data-tune=close]{--tc:#ff9f0a}
+dialog.tuner[data-tune=off]{--tc:var(--danger)}
+.tuner .thead{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--mute);font-weight:600}
+.tuner .thead .iconbtn{padding:4px 9px;font-size:12px}
+.tuner .tnote{text-align:center;margin:4px 0 8px;line-height:1}
+.tuner .tnote b{font-size:72px;font-weight:700;letter-spacing:-.05em;color:var(--tc);transition:color .2s}
+.tuner .tnote sub{font-size:22px;font-weight:600;color:var(--mute);vertical-align:baseline;margin-left:2px}
+.tuner.idle .tnote b{color:var(--faint)}
+.tuner .tmeter{position:relative;height:30px;border-radius:99px;background:var(--soft);overflow:hidden}
+.tuner .tzone{position:absolute;left:50%;top:0;bottom:0;width:calc(var(--half) * .1 * 2);transform:translateX(-50%);background:color-mix(in srgb,var(--ok) 22%,transparent)}
+.tuner .tzero{position:absolute;left:50%;top:5px;bottom:5px;width:2px;margin-left:-1px;background:var(--faint);border-radius:2px}
+.tuner #tNeedle{position:absolute;left:50%;top:3px;bottom:3px;width:6px;border-radius:6px;background:var(--tc);transform:translateX(-50%);transition:transform .12s linear,background .2s}
+.tuner.idle #tNeedle{opacity:0}
+.tuner .tscale{display:flex;justify-content:space-between;font-size:10.5px;color:var(--faint);margin:5px 4px 0;font-variant-numeric:tabular-nums}
+.tuner .tread{display:flex;flex-direction:column;align-items:center;gap:2px;margin:8px 0 10px}
+.tuner .tread b{font-size:15px;color:var(--tc)}
+.tuner .tread span{font-size:12px;color:var(--mute);font-variant-numeric:tabular-nums}
+.tuner .ta4{display:flex;justify-content:center;align-items:center;gap:6px;font-size:12px;color:var(--mute);border-top:1px solid var(--line);padding-top:10px}
+.tuner .ta4 button{width:24px;height:24px;padding:0;border-radius:50%;font-size:14px;line-height:1}
+.tuner .ta4 b{color:var(--ink);font-variant-numeric:tabular-nums}

@@ -16,6 +16,7 @@ from pathlib import Path
 
 from . import jobs
 from .chords import CHORDS_VERSION, analyze_chords
+from .sections import SECTIONS_VERSION, analyze_sections
 from .config import PEAK_COLUMNS, SILENT_DB, STEMS
 from .util import atomic_write_json
 
@@ -95,7 +96,7 @@ def compute_peaks(jdir: Path) -> dict:
             if info:
                 out["duration"] = info.pop("_seconds")
                 out["stems"][name] = info
-        analyse_rest(jdir, out, ("beats", "key", "chords"))
+        analyse_rest(jdir, out, ("beats", "key", "chords", "sections"))
     finally:
         _parts_cache.pop(str(jdir), None)
     atomic_write_json(jdir / "peaks.json", out)
@@ -113,6 +114,9 @@ def analyse_rest(jdir: Path, data: dict, fields) -> None:
         data["chords"] = result or _failed("chords")
     if "key" in fields:
         data["key"] = _safely(lambda d: analyze_key(d, profile), jdir)
+    if "sections" in fields:
+        data["sections"] = _safely(lambda d: analyze_sections(d, data.get("beats"), data.get("duration") or 0), jdir) \
+            or _failed("sections")
 
 
 RETRY_FAILED_AFTER = 3600  # seconds: a failed analysis (e.g. offline when the chord model was needed) is retried later
@@ -120,7 +124,7 @@ RETRY_FAILED_AFTER = 3600  # seconds: a failed analysis (e.g. offline when the c
 
 def _failed(field: str) -> dict | None:
     """What to store when an analysis failed, so it isn't re-run (slowly) every time the song is opened."""
-    version = {"beats": BEATS_VERSION, "chords": CHORDS_VERSION}.get(field)
+    version = {"beats": BEATS_VERSION, "chords": CHORDS_VERSION, "sections": SECTIONS_VERSION}.get(field)
     if version is None:
         return None
     return {"v": version, "failed": time.time(), **({"times": []} if field == "beats" else {"list": []})}
@@ -288,9 +292,12 @@ def ensure_analysis(job_id: str) -> dict:
         data = json.loads(path.read_text()) if path.exists() else compute_peaks(jdir)
         stale = [(field, fn) for field, fn in (("beats", analyze_beats), ("key", analyze_key))
                  if field not in data or (field == "beats" and _outdated(data.get("beats"), BEATS_VERSION))]
-        chords_stale = any(f == "beats" for f, _ in stale) or _outdated(data.get("chords"), CHORDS_VERSION)
-        if stale or chords_stale:
-            fields = {f for f, _ in stale} | ({"chords"} if chords_stale else set())  # chords follow the beats
+        beats_stale = any(f == "beats" for f, _ in stale)
+        chords_stale = beats_stale or _outdated(data.get("chords"), CHORDS_VERSION)
+        sections_stale = beats_stale or _outdated(data.get("sections"), SECTIONS_VERSION)
+        if stale or chords_stale or sections_stale:
+            fields = ({f for f, _ in stale} | ({"chords"} if chords_stale else set())  # chords and sections follow the beats
+                      | ({"sections"} if sections_stale else set()))
             try:
                 analyse_rest(jdir, data, fields)
             finally:

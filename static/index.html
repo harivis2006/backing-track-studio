@@ -64,6 +64,7 @@
       <div id="chordNow" hidden title="The chord playing now → the next one"></div>
       <div id="time"><b id="tNow">0:00</b> / <span id="tDur">0:00</span><span id="barbeat"></span></div>
       <button class="iconbtn" id="videoToggle" title="Show / hide the video (V)">Video</button>
+      <button class="iconbtn" id="tunerBtn" title="Tuner (T)">Tuner</button>
       <button class="iconbtn" id="settingsBtn" title="Settings">⚙︎</button>
       <button class="iconbtn" id="helpBtn" title="Keyboard shortcuts (?)">?</button>
     </header>
@@ -101,7 +102,7 @@
     <div id="rows">
       <div id="loadingBar"></div>
       <div class="row ruler"><div class="ctl"><span id="tempoLabel"></span><span class="zoomctl"><span id="zoomLabel"></span><button id="zoomOut" title="Zoom out (Shift+Z fits the whole song)">−</button><button id="zoomIn" title="Zoom in (Z) — or pinch / ⌘-scroll on the waveforms">+</button><button id="zoomFit" title="Show the whole song (Shift+Z)" hidden>Fit</button><button id="addMarker" title="Add a marker at the playhead (M) — or double-click the ruler"><span class="wide">+ Marker</span><span class="narrow">⚑</span></button></span></div><div class="wavewrap" style="height:32px"><canvas id="ruler"></canvas></div></div>
-      <div class="row chordrow" id="chordRow" hidden><div class="ctl"><span class="lbl">Chords</span><span class="zoomctl"><button id="chordMode" hidden></button><button id="chartBtn" title="Chord chart (H)">Chart</button></span></div><div class="wavewrap"><canvas id="chordCanvas"></canvas></div></div>
+      <div class="row chordrow" id="chordRow" hidden><div class="ctl"><span class="lbl">Chords</span><span class="zoomctl"><button id="chordMode" hidden></button><button id="chartBtn" title="Chord chart (H)">Chart</button></span></div><div class="wavewrap"><canvas id="formCanvas" hidden></canvas><canvas id="chordCanvas"></canvas></div></div>
       <div id="stemRows"></div>
       <div id="takeRows"></div>
       <div id="hoverline"></div>
@@ -211,6 +212,15 @@
   <p class="hint">Chords are detected automatically — fix any that sound wrong with <b>Edit chords</b> (or double-click a chord in the lane). Your changes are saved with the song. Click a bar to jump there · % = same as the bar before.</p>
 </dialog>
 
+<dialog id="tunerDlg" class="tuner idle" aria-label="Tuner">
+  <div class="thead"><span id="tFor">Concert pitch</span><button id="tunerClose" class="iconbtn" title="Close (Esc)">✕</button></div>
+  <div class="tnote"><b id="tNote">–</b><sub id="tOct"></sub></div>
+  <div class="tmeter"><i class="tzone"></i><i class="tzero"></i><i id="tNeedle"></i></div>
+  <div class="tscale"><span>♭ 50</span><span>0</span><span>50 ♯</span></div>
+  <div class="tread"><b id="tCents">Play a long note</b><span id="tFreq"></span></div>
+  <div class="ta4">A4 = <button id="a4Down" aria-label="Lower the reference">−</button><b id="a4Out">440</b> Hz<button id="a4Up" aria-label="Raise the reference">+</button></div>
+</dialog>
+
 <dialog id="help">
   <h3>Keyboard shortcuts</h3>
   <table>
@@ -227,10 +237,11 @@
     <tr><td><kbd>V</kbd> · <kbd>F</kbd></td><td>Show / hide the video · video fullscreen (drag the bar under the video to resize it)</td></tr>
     <tr><td><kbd>A</kbd></td><td>A/B: compare with the original song</td></tr>
     <tr><td><kbd>H</kbd> · <kbd>G</kbd></td><td>Chord chart (Edit chords there to fix them; or double-click a chord in the lane) · show / hide the chords</td></tr>
+    <tr><td><kbd>T</kbd></td><td>Tuner — shows the note written for your instrument, and how many cents sharp or flat</td></tr>
     <tr><td><kbd>E</kbd></td><td>Export…</td></tr>
-    <tr><td><kbd>M</kbd> · <kbd>,</kbd> <kbd>.</kbd></td><td>Add a marker · jump to previous / next marker</td></tr>
+    <tr><td><kbd>M</kbd> · <kbd>,</kbd> <kbd>.</kbd></td><td>Add a marker · jump to the previous / next marker or chorus</td></tr>
     <tr><td><kbd>Z</kbd> · <kbd>Shift</kbd>+<kbd>Z</kbd></td><td>Zoom in (to the loop, if there is one) · show the whole song</td></tr>
-    <tr><td>Mouse</td><td>Click a waveform or the bar ruler to jump · drag to select a section (snaps to beats; hold <kbd>Alt</kbd> for free selection) · drag a section's edge to adjust it · double-click a slider to reset it · double-click a take's name to rename it · pinch or ⌘-scroll to zoom, scroll sideways to move · double-click the ruler to add a marker; Shift-click a marker to loop that section · double-click the song title to rename it</td></tr>
+    <tr><td>Mouse</td><td>Click a waveform or the bar ruler to jump · drag to select a section (snaps to beats; hold <kbd>Alt</kbd> for free selection) · drag a section's edge to adjust it · double-click a slider to reset it · double-click a take's name to rename it · pinch or ⌘-scroll to zoom, scroll sideways to move · double-click the ruler to add a marker; Shift-click a marker to loop that section · double-click the song title to rename it · click a chorus or section in the Form strip to loop it, Shift-click to add more</td></tr>
   </table>
   <div class="dlgbtns"><button onclick="this.closest('dialog').close()">Close</button></div>
 </dialog>
@@ -265,6 +276,8 @@
 <script src="/static/js/export.js"></script>
 <script src="/static/js/tools.js"></script>
 <script src="/static/js/chords.js"></script>
+<script src="/static/js/sections.js"></script>
+<script src="/static/js/tuner.js"></script>
 <script src="/static/js/palette.js"></script>
 <script src="/static/js/bento.js"></script>
 <script src="/static/js/processing.js"></script>
