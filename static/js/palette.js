@@ -35,8 +35,10 @@ function paletteCommands() {
     add("Practice", "Add a marker here", () => addMarker(), {keys: "M"});
     for (const m of markers) add("Markers", `Go to “${m.name}”`, () => seek(m.t), {hint: fmt(m.t)});
     add("View", "Show the whole song", () => setView(0, duration), {keys: "⇧Z"});
-    if (!$("#chordRow").hidden) {
+    if (hasChords()) {
       add("Chords", "Chord chart", openChart, {keys: "H"});
+      add("Chords", "Edit the chords", () => { openChart(); $("#chartEdit").click(); });
+      add("Chords", prefs.chordsOn === false ? "Show the chords" : "Hide the chords", () => $("#chordsBtn").click(), {keys: "G"});
       if (+prefs.inst) add("Chords", writtenForYou() ? "Show chords at concert pitch" : "Write chords for my instrument", () => $("#chordMode").click());
     }
     if (current.video) {

@@ -60,7 +60,7 @@ async function openJob(id) {
   if (token !== loadToken) return;
   duration = peaks.duration || job.duration || 0;
   rawBeats = peaks.beats; beatOv = st.beatOv || {}; beats = buildGrid(rawBeats, beatOv);
-  songKey = peaks.key || null; setChords(peaks.chords?.list); markers = Array.isArray(st.markers) ? st.markers.filter(m => m.t < duration) : [];
+  songKey = peaks.key || null; setChords(peaks.chords?.list, peaks.chordsUser); markers = Array.isArray(st.markers) ? st.markers.filter(m => m.t < duration) : [];
   setView(st.viewA ?? 0, st.viewB && st.viewB <= duration + 0.01 ? st.viewB : duration, {keep:true}); updateKeyName();
   updateTempoLabel();
   stems = job.stems.map(name => buildRow(name, peaks.stems[name], st));

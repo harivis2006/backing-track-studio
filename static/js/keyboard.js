@@ -36,6 +36,7 @@ document.addEventListener("keydown", e => {
   else if (k === "a" || k === "A") setAB(!abSaved);
   else if (k === "e" || k === "E") { e.preventDefault(); openExport(); }
   else if (k === "h" || k === "H") openChart();
+  else if ((k === "g" || k === "G") && hasChords()) $("#chordsBtn").click();
   else if (k === "," || k === "<") jumpMarker(-1);
   else if (k === "." || k === ">") jumpMarker(1);
   else if (k === "Z" && e.shiftKey) setView(0, duration);

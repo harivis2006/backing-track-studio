@@ -92,6 +92,7 @@
       <div class="group">
         <button class="toggle" id="countInBtn" aria-pressed="false" title="Count in one bar before playing (C)">Count-in</button>
         <button class="toggle" id="metroBtn" aria-pressed="false" title="Metronome click (K)">Click</button>
+        <button class="toggle" id="chordsBtn" aria-pressed="true" title="Show / hide the chords (G)" hidden>Chords</button>
         <button class="toggle" id="abBtn" aria-pressed="false" title="Compare: hear the original song with nothing removed (A)">A/B</button>
         <span id="abNote">Hearing the original</span>
       </div>
@@ -201,10 +202,13 @@
 </dialog>
 
 <dialog id="chartDlg" aria-label="Chord chart">
-  <div class="charthead"><div><h3>Chord chart</h3><div class="hint"><span id="chartTitle"></span> · <span id="chartMeta"></span></div></div>
-    <button onclick="this.closest('dialog').close()">Done</button></div>
+  <div class="charthead"><div><h3>Chord chart <span id="chartEdited" class="badge" hidden>Edited by you</span></h3><div class="hint"><span id="chartTitle"></span> · <span id="chartMeta"></span></div></div>
+    <div class="chartbtns"><button id="chartUndo" title="Undo (⌘Z)" disabled>Undo</button><button id="chartReset" hidden title="Forget your changes">Reset to detected</button>
+    <button id="chartEdit" class="toggle" aria-pressed="false">Edit chords</button><button onclick="this.closest('dialog').close()">Done</button></div></div>
+  <div id="chartHelp" class="charthelp" hidden>Click a bar and type its chords as you'd write them: <b>Gm7</b> fills the bar, <b>Gm7 C7</b> splits it in half,
+    four chords give one per beat, <b>%</b> repeats the bar before, <b>NC</b> means no chord. <kbd>Enter</kbd> saves · <kbd>Tab</kbd> next bar · <kbd>Esc</kbd> cancels.</div>
   <div id="chartGrid"></div>
-  <p class="hint">Chords are detected automatically, so check anything that sounds off. Click a bar to jump there · % = same as the bar before.</p>
+  <p class="hint">Chords are detected automatically — fix any that sound wrong with <b>Edit chords</b> (or double-click a chord in the lane). Your changes are saved with the song. Click a bar to jump there · % = same as the bar before.</p>
 </dialog>
 
 <dialog id="help">
@@ -222,7 +226,7 @@
     <tr><td><kbd>-</kbd> <kbd>=</kbd></td><td>Key down / up a semitone</td></tr>
     <tr><td><kbd>V</kbd> · <kbd>F</kbd></td><td>Show / hide the video · video fullscreen (drag the bar under the video to resize it)</td></tr>
     <tr><td><kbd>A</kbd></td><td>A/B: compare with the original song</td></tr>
-    <tr><td><kbd>H</kbd></td><td>Chord chart</td></tr>
+    <tr><td><kbd>H</kbd> · <kbd>G</kbd></td><td>Chord chart (Edit chords there to fix them; or double-click a chord in the lane) · show / hide the chords</td></tr>
     <tr><td><kbd>E</kbd></td><td>Export…</td></tr>
     <tr><td><kbd>M</kbd> · <kbd>,</kbd> <kbd>.</kbd></td><td>Add a marker · jump to previous / next marker</td></tr>
     <tr><td><kbd>Z</kbd> · <kbd>Shift</kbd>+<kbd>Z</kbd></td><td>Zoom in (to the loop, if there is one) · show the whole song</td></tr>

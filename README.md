@@ -13,7 +13,8 @@ Everything runs locally on your Mac — the AI models run on Apple Silicon's GPU
 - **Practice tools:** speed 50–120% without changing pitch, key ±12 semitones, loops that snap to the beat,
   section markers, count-in, metronome, A/B against the original, zoomable waveforms
 - **Chord changes:** detected for every song, shown under the timeline (now → next in the header) and as a
-  chord chart (H), written for your instrument and following key changes
+  chord chart (H), written for your instrument and following key changes; fix any chord by typing it
+  (Edit chords in the chart, or double-click a chord in the lane) — your fixes are saved with the song
 - **Your instrument:** new songs open with your part muted; keys are shown written for E♭ / B♭ / F instruments
 - **Record yourself** over the track (with latency correction, mic level meter, multiple takes)
 - **Export** MP3 / WAV / video, optionally with a count-in, or every part as separate WAVs for a DAW

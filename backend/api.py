@@ -1,6 +1,7 @@
 """The web API the page talks to. Thin layer: validate input, call the module that does the work."""
 
 import asyncio
+import json
 import os
 import shutil
 import threading
@@ -14,7 +15,7 @@ from starlette.background import BackgroundTask
 
 from . import analysis, exports, jobs, practice, sources, takes
 from .config import ALLOWED_HOSTS, ALLOWED_ORIGINS, STATIC, STEMS, VERSION
-from .util import safe_filename
+from .util import atomic_write_json, safe_filename
 
 app = FastAPI(title="Backing Track Studio")
 
@@ -36,7 +37,7 @@ async def only_our_website(request: Request, call_next):
     if request.method == "OPTIONS" and origin:  # preflight
         headers = {
             "Access-Control-Allow-Origin": origin,
-            "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
             "Access-Control-Allow-Headers": request.headers.get("access-control-request-headers", "content-type"),
             "Access-Control-Max-Age": "600",
             "Vary": "Origin",
@@ -157,7 +158,37 @@ class VersionIn(BaseModel):
 @app.get("/api/jobs/{job_id}/peaks")
 def get_peaks(job_id: str):
     _job(job_id, done=True)
-    return JSONResponse(analysis.ensure_analysis(job_id))
+    data = dict(analysis.ensure_analysis(job_id))
+    fixed = jobs.job_dir(job_id) / "chords_user.json"
+    if fixed.exists():  # your corrections replace the detected chords (kept separately, so re-analysis never loses them)
+        data["chordsUser"] = json.loads(fixed.read_text())
+    return JSONResponse(data)
+
+
+class ChordsIn(BaseModel):
+    list: list[tuple[float, float, int, str]]
+
+
+@app.put("/api/jobs/{job_id}/chords")
+def save_chords(job_id: str, body: ChordsIn):
+    """Save your corrected chord list: [[start, end, root 0-11 or -1, quality], ...] at concert pitch."""
+    _job(job_id, done=True)
+    clean, last_end = [], 0.0
+    for t, e, root, q in body.list[:5000]:
+        if not (0 <= t < e) or t < last_end - 0.01 or not -1 <= root <= 11 or len(q) > 12:
+            raise HTTPException(400, "That chord list isn't valid")
+        clean.append([round(t, 3), round(e, 3), root, q])
+        last_end = e
+    atomic_write_json(jobs.job_dir(job_id) / "chords_user.json", clean)
+    return {"ok": True}
+
+
+@app.delete("/api/jobs/{job_id}/chords")
+def reset_chords(job_id: str):
+    """Forget your corrections and go back to the detected chords."""
+    _job(job_id, done=True)
+    (jobs.job_dir(job_id) / "chords_user.json").unlink(missing_ok=True)
+    return {"ok": True}
 
 
 @app.get("/api/jobs/{job_id}/stems/{stem}")
