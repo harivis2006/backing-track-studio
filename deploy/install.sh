@@ -53,7 +53,7 @@ if [ -z "$NO_AGENT" ]; then stop_helper; fi
 say "Downloading the helper…"
 mkdir -p "$HOME_DIR"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
-curl -fsSL "$SITE/helper.zip" -o "$tmp/helper.zip"
+curl -fsSL -H "Cache-Control: no-cache" "$SITE/helper.zip?v=$(date +%s)" -o "$tmp/helper.zip"  # never a stale cached copy
 rm -rf "$HOME_DIR/app.new"; mkdir -p "$HOME_DIR/app.new"
 ditto -x -k "$tmp/helper.zip" "$HOME_DIR/app.new"
 for keep in .venv models; do  # keep the Python packages and AI models from a previous install
