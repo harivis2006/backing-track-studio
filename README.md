@@ -18,12 +18,12 @@ Everything runs locally on your Mac — the AI models run on Apple Silicon's GPU
 
 ## Using the website
 
-The page is hosted at **https://backing-track-studio.vercel.app**; the AI work happens on your own Mac via a
+The page is hosted at **https://backingtrackstudio.xyz**; the AI work happens on your own Mac via a
 small **helper** (this repo's server) that the website talks to at `http://127.0.0.1:8765`.
 The first visit shows a one-line installer:
 
 ```bash
-curl -fsSL https://backing-track-studio.vercel.app/install.sh | bash
+curl -fsSL https://backingtrackstudio.xyz/install.sh | bash
 ```
 
 It installs the helper into `~/Library/Application Support/Backing Track Studio`, starts it at login, and adds
