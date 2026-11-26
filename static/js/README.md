@@ -21,6 +21,7 @@ only depends on files above it).
 | `chords.js` | Chord lane, now → next chord, chord chart; naming & transposing chords |
 | `palette.js` | Command palette (⌘K): jump to a song or run any command |
 | `bento.js` | Welcome screen & website landing page: tile animations, mockup tilt, scroll progress |
+| `processing.js` | The screen shown while a song is being split; opens the song when it's ready |
 | `app.js` | Key display, zoom buttons, rename / search, quit — then starts the app |
 
 **Time:** everything the user sees is in *song time* (seconds of the original recording). Practice versions

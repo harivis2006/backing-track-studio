@@ -35,6 +35,23 @@
     </div>
     <p class="hint ehint">Everything runs on this Mac. A 5-minute song takes about 6–7 minutes to split. Press <kbd>?</kbd> for shortcuts.</p>
   </div>
+  <div id="processing" hidden>
+    <div class="pbento">
+      <div class="bt phero" data-r>
+        <img id="pCover" alt="" class="pblur"><img id="pArt" alt="" class="part">
+        <div class="eyebrow">Making your backing track</div>
+        <h2 id="pTitle"></h2><div id="pSource" class="psource"></div>
+        <div id="pPct" class="ppct"></div>
+        <div id="pStage" class="pstage"></div><div id="pEta" class="peta"></div>
+        <div class="pbar"><i id="pBar"></i></div>
+        <div class="pbtns"><button id="pRetry" hidden>Try again</button><button id="pCancel">Cancel</button></div>
+      </div>
+      <div class="bt psteps" data-r><div class="eyebrow">What's happening</div><ol id="pSteps"></ol></div>
+      <div id="pParts" class="pparts"></div>
+      <div class="bt gr ptip" data-r><div class="eyebrow">While you wait</div><div id="pTip"></div></div>
+      <div class="bt pside" id="pSide" data-r></div>
+    </div>
+  </div>
   <div id="studio">
     <header>
       <div class="transport">
@@ -246,6 +263,7 @@
 <script src="/static/js/chords.js"></script>
 <script src="/static/js/palette.js"></script>
 <script src="/static/js/bento.js"></script>
+<script src="/static/js/processing.js"></script>
 <script src="/static/js/app.js"></script>
 </body>
 </html>

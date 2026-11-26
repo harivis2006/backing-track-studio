@@ -92,7 +92,7 @@ aside .sub{color:var(--mute);font-size:12.5px;margin:8px 18px 14px}
 .track:hover{background:var(--soft)}
 .track.active{background:var(--acc-soft)}
 .track.active .t{color:var(--acc)}
-.track.busy{cursor:default}
+.track.busy{cursor:pointer}
 .track .art{width:44px;height:44px;border-radius:11px;background:var(--soft);display:grid;place-items:center;font-size:18px;color:var(--faint);overflow:hidden}
 .track .art img{width:100%;height:100%;object-fit:cover;display:block}
 .track .body{min-width:0}
@@ -406,6 +406,76 @@ dialog td:first-child{white-space:nowrap;padding-left:0}
 .ebento .H .brow{margin-top:auto;max-width:100%}
 .ebento .P{grid-area:p}.ebento .D{grid-area:d}.ebento .S{grid-area:s}.ebento .K{grid-area:k}.ebento .L{grid-area:l}.ebento .R{grid-area:r}.ebento .X{grid-area:x}.ebento .C{grid-area:c}
 .ehint{text-align:center;margin:14px 0 4px}
+
+/* processing screen (a song being split): hero + steps, the seven parts, tips */
+#processing{margin:auto;width:100%;max-width:1060px;overflow:auto;max-height:100%;padding:2px}
+#processing[hidden]{display:none}
+.pbento{display:grid;gap:10px;grid-template-columns:repeat(4,1fr);grid-template-areas:"h h s s" "p p p p" "t t t q"}
+.phero{grid-area:h;min-height:360px;align-items:flex-start;text-align:left;justify-content:flex-start;padding:26px;background:#111;color:#fff;gap:0}
+.phero .eyebrow{color:rgba(255,255,255,.6);position:relative}
+.pblur{position:absolute;inset:-40px;width:calc(100% + 80px);height:calc(100% + 80px);object-fit:cover;filter:blur(34px) saturate(1.5);opacity:0;transform:scale(1.1);transition:opacity 1.2s var(--ease)}
+.phero::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,#1c1c1e,#3b2a6d 55%,#0a84ff);opacity:.9;transition:opacity 1.2s var(--ease)}
+#processing.hascover .pblur{opacity:.75}
+#processing.hascover .phero::before{opacity:.45;background:linear-gradient(180deg,rgba(0,0,0,.15),rgba(0,0,0,.65))}
+.part{position:absolute;top:22px;right:22px;width:96px;height:96px;border-radius:18px;object-fit:cover;box-shadow:0 14px 30px rgba(0,0,0,.45);opacity:0;transform:scale(.85) rotate(-4deg);transition:all .9s var(--ease)}
+#processing.hascover .part{opacity:1;transform:rotate(3deg)}
+.phero h2{position:relative;font-size:clamp(22px,2.4vw,30px);font-weight:800;letter-spacing:-.035em;line-height:1.08;margin:6px 120px 4px 0;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.psource{position:relative;font-size:13px;font-weight:500;color:rgba(255,255,255,.65)}
+.ppct{position:relative;margin-top:auto;font-size:clamp(64px,8vw,104px);font-weight:800;letter-spacing:-.06em;line-height:.95;
+  background:linear-gradient(90deg,#fff,#d7c6ff 60%,#ffb3c6);-webkit-background-clip:text;background-clip:text;color:transparent;font-variant-numeric:tabular-nums}
+.ppct span{font-size:.42em;letter-spacing:-.02em;margin-left:4px}
+.pstage{position:relative;font-size:15px;font-weight:600;margin-top:8px}
+.peta{position:relative;font-size:13px;color:rgba(255,255,255,.65);min-height:18px;margin-top:2px}
+.pbar{position:relative;width:100%;height:8px;border-radius:4px;background:rgba(255,255,255,.16);overflow:hidden;margin-top:16px}
+.pbar i{position:absolute;inset:0;background:linear-gradient(90deg,#0a84ff,#bf5af2,#ff375f);transform-origin:left;transform:scaleX(0);transition:transform 1.2s var(--ease);border-radius:4px}
+.pbar i::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.55) 50%,transparent 70%);transform:translateX(-100%);animation:sheen 2.4s ease-in-out infinite}
+.pbtns{position:relative;display:flex;gap:8px;margin-top:14px}
+.pbtns button{background:rgba(255,255,255,.14);color:#fff;font-size:13px;backdrop-filter:blur(10px)}
+.pbtns button:hover:not(:disabled){background:rgba(255,255,255,.26)}
+#pRetry{background:#fff;color:#1d1d1f}
+#pRetry:hover:not(:disabled){background:#fff}
+#processing[data-status=error] .ppct{background:none;color:#ff6b6b}
+#processing[data-status=queued] .pbar i::after,#processing[data-status=error] .pbar i::after{animation:none}
+#processing.finished .phero{animation:done .9s var(--ease)}
+@keyframes done{40%{transform:scale(1.025)}}
+@keyframes sheen{60%,100%{transform:translateX(100%)}}
+.psteps{grid-area:s;align-items:flex-start;text-align:left;justify-content:flex-start;padding:24px}
+#pSteps{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:6px;width:100%}
+#pSteps li{display:flex;gap:14px;align-items:center;padding:12px 14px;border-radius:16px;background:var(--soft);transition:background .5s var(--ease),transform .5s var(--ease)}
+#pSteps li b{display:block;font-size:14.5px;letter-spacing:-.01em}
+#pSteps li small{display:block;font-size:12px;font-weight:400;color:var(--mute);margin-top:1px}
+.pdot{flex:none;width:26px;height:26px;border-radius:50%;background:var(--soft2);display:grid;place-items:center;font-style:normal;font-size:13px;color:#fff;transition:all .5s var(--ease);position:relative}
+#pSteps li.done .pdot{background:var(--ok)} #pSteps li.done .pdot::after{content:"✓";font-weight:800}
+#pSteps li.done b{color:var(--mute)}
+#pSteps li.now{background:var(--acc-soft);transform:scale(1.02)}
+#pSteps li.now .pdot{background:var(--acc)}
+#pSteps li.now .pdot::before{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid var(--acc);opacity:.5;animation:ring 1.6s ease-out infinite}
+#pSteps li.now b{color:var(--acc)}
+#pSteps li.fail{background:#ff3b3014} #pSteps li.fail .pdot{background:var(--danger)} #pSteps li.fail .pdot::after{content:"!";font-weight:800}
+@keyframes ring{from{transform:scale(.8);opacity:.7}to{transform:scale(1.5);opacity:0}}
+.pparts{grid-area:p;display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
+.ppart{min-height:128px;padding:14px 8px}
+.ppart .eqz{height:46px;gap:4px}
+.ppart .eqz i{background:var(--c);height:14%;opacity:.35;animation:none;transition:height .8s var(--ease),opacity .8s var(--ease)}
+.ppart.live .eqz i{opacity:1;animation:eq 1.1s ease-in-out infinite alternate}
+.ppart.ready .eqz i{opacity:1}
+.ppart.ready .eqz i:nth-child(1){height:40%}.ppart.ready .eqz i:nth-child(2){height:75%}.ppart.ready .eqz i:nth-child(3){height:55%}.ppart.ready .eqz i:nth-child(4){height:95%}
+.ppart.ready .eqz i:nth-child(5){height:60%}.ppart.ready .eqz i:nth-child(6){height:80%}.ppart.ready .eqz i:nth-child(7){height:35%}
+.ppart small{font-size:12.5px}
+.ppart .pstate{transition:color .4s}
+.ppart.live .pstate{color:var(--acc)!important}
+.ppart.ready .pstate{color:var(--ok)!important}
+.ptip{grid-area:t;align-items:flex-start;text-align:left;justify-content:center;padding:20px 24px;min-height:110px}
+.ptip .eyebrow{color:rgba(255,255,255,.65)}
+#pTip{display:flex;align-items:center;gap:14px;margin-top:10px;font-size:17px;font-weight:600;letter-spacing:-.015em;opacity:0;transform:translateY(8px)}
+#pTip.in{opacity:1;transform:none;transition:opacity .7s var(--ease),transform .7s var(--ease)}
+#pTip kbd{font-size:14px;padding:6px 11px;border-radius:10px;background:rgba(255,255,255,.16);color:#fff;box-shadow:none;flex:none}
+.pside{grid-area:q;min-height:110px}
+@media (max-width:1150px){
+  .pbento{grid-template-columns:1fr 1fr;grid-template-areas:"h h" "s s" "p p" "t q"}
+  .pparts{grid-template-columns:repeat(4,1fr)}
+}
 
 /* ---------- website landing page + setup (when the helper isn't installed / running) */
 #setup{position:fixed;inset:0;z-index:70;background:var(--bg);overflow:auto}

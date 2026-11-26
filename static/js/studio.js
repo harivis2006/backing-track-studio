@@ -33,6 +33,7 @@ async function openJob(id) {
   const job = jobs.find(j => j.id === id); if (!job || job.status !== "done") return;
   if (recording) await stopRecording();
   if (playing) pause();
+  hideProcessing();
   clearTimeout(practiceTimer);
   const token = ++loadToken;
   current = job; localStorage.setItem("bts:last", id); renderLib();

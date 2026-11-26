@@ -11,12 +11,12 @@ async function refresh() {
   for (const j of jobs) {
     const was = prevStatus[j.id];
     if (was && was !== j.status) {
-      if (j.status === "done") { toast(`Ready: ${j.title}`, {type:"ok", action:() => openJob(j.id), actionLabel:"Open", ms:12000}); notify(`Ready: ${j.title}`, "Your backing track is ready to play.", j.id); }
+      if (j.status === "done" && watching !== j.id) { toast(`Ready: ${j.title}`, {type:"ok", action:() => openJob(j.id), actionLabel:"Open", ms:12000}); notify(`Ready: ${j.title}`, "Your backing track is ready to play.", j.id); }
       if (j.status === "error") toast(`Couldn't process “${j.title}”: ${j.error}`, {type:"err", ms:12000});
     }
     prevStatus[j.id] = j.status;
   }
-  renderLib();
+  renderLib(); renderProcessing();
   const busy = jobs.filter(j => j.status === "queued" || j.status === "running");
   const run = busy.find(j => j.status === "running");
   document.title = (run ? `(${Math.round((run.progress||0)*100)}%) ` : busy.length ? "(queued) " : "")
@@ -27,6 +27,7 @@ async function refresh() {
     const last = localStorage.getItem("bts:last");
     const pick = jobs.find(j => j.id === last && j.status === "done") || jobs.find(j => j.status === "done");
     if (pick && !current) openJob(pick.id);
+    else if (!pick && !current) { const busyOne = jobs.find(j => j.status === "running") || jobs.find(j => j.status === "queued"); if (busyOne) showProcessing(busyOne.id); }
   }
   if (current && !jobs.some(j => j.id === current.id)) closeStudio();
 }
@@ -51,7 +52,7 @@ function renderLib() {
     const art = j.status === "done" && (j.video || j.matched || j.url)
       ? `<div class="art"><img loading="lazy" src="${apiUrl(`/api/jobs/${j.id}/thumb`)}" alt="" onerror="this.remove()"></div>`
       : `<div class="art">${j.status === "error" ? "!" : busy ? "…" : "♪"}</div>`;
-    return `<div class="track ${current?.id===j.id?"active":""} ${busy?"busy":""} ${j.status==="error"?"err":""}" data-id="${j.id}" title="${esc(j.title)}" tabindex="0">
+    return `<div class="track ${current?.id===j.id || watching===j.id?"active":""} ${busy?"busy":""} ${j.status==="error"?"err":""}" data-id="${j.id}" title="${esc(j.title)}" tabindex="0">
       ${art}<div class="body"><div class="t">${esc(j.title)}</div><div class="s"><span>${esc(s)}</span>${tags}</div>
       ${busy ? `<div class="bar"><i style="width:${Math.max(3, pct)}%"></i></div>` : ""}</div>
       <div class="acts">${acts}</div></div>`;
@@ -71,7 +72,7 @@ $("#lib").addEventListener("click", async e => {
       return refresh();
     }
     if (act === "retry") { await api(`/api/jobs/${id}/retry`, {method:"POST"}); return refresh(); }
-    if (j.status === "done") openJob(id);
+    if (j.status === "done") openJob(id); else showProcessing(id);
   } catch (err) { toast(err.message, {type:"err"}); }
 });
 $("#lib").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.classList.contains("track")) e.target.click(); });
@@ -79,7 +80,7 @@ async function uploadFiles(files) {
   for (const f of files) {
     if (!AUDIO_EXT.test(f.name) && !/^(audio|video)\//.test(f.type)) { toast(`“${f.name}” isn't an audio or video file`, {type:"err"}); continue; }
     const fd = new FormData(); fd.append("file", f);
-    try { await api("/api/upload", {method:"POST", body:fd}); toast(`Added “${f.name}”`); }
+    try { const job = await (await api("/api/upload", {method:"POST", body:fd})).json(); await refresh(); if (!current) showProcessing(job.id); else toast(`Added “${f.name}” — click it in the list to watch its progress`); }
     catch (err) { toast(`Couldn't add ${f.name}: ${err.message}`, {type:"err"}); }
     refresh();
   }
@@ -103,8 +104,9 @@ $("#linkForm").onsubmit = async e => {
     return;
   }
   try {
-    await api("/api/link", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({url})});
-    $("#linkInput").value = ""; refresh();
+    const job = await (await api("/api/link", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({url})})).json();
+    $("#linkInput").value = ""; await refresh();
+    if (!current) showProcessing(job.id); else toast("Added — click it in the list to watch its progress");
   } catch (err) { toast(err.message, {type:"err"}); }
 };
 const drop = $("#drop");
