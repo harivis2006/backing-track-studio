@@ -39,7 +39,16 @@ fi
 PYTHON="$(command -v python3.12 || echo "$BREW_BIN/python3.12")"
 
 # ---------------------------------------------------------------- the helper itself
-if [ -z "$NO_AGENT" ]; then launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true; fi
+stop_helper() {  # stop the running helper and wait until it has really gone (a busy one takes a few seconds)
+  busy=$(curl -s -m 2 "http://127.0.0.1:$PORT/api/jobs" | grep -oE '"status": ?"(running|queued)"' | wc -l | tr -d ' ')
+  if [ "${busy:-0}" -gt 0 ]; then say "$busy song(s) being split will start again after the update — nothing is lost."; fi
+  launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
+  for i in $(seq 1 30); do
+    if ! launchctl print "gui/$(id -u)/$LABEL" >/dev/null 2>&1 && ! lsof -nP -iTCP:$PORT -sTCP:LISTEN >/dev/null 2>&1; then break; fi
+    sleep 1
+  done
+}
+if [ -z "$NO_AGENT" ]; then stop_helper; fi
 say "Downloading the helper…"
 mkdir -p "$HOME_DIR"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
@@ -83,7 +92,12 @@ cat > "$plist" <<PLIST
   <key>StandardErrorPath</key><string>$HOME_DIR/logs/helper.log</string>
 </dict></plist>
 PLIST
-launchctl bootstrap "gui/$(id -u)" "$plist"
+for i in 1 2 3 4 5; do  # starting can fail briefly while macOS finishes removing the old one
+  if launchctl bootstrap "gui/$(id -u)" "$plist" 2>/dev/null; then break; fi
+  if launchctl print "gui/$(id -u)/$LABEL" >/dev/null 2>&1; then launchctl kickstart -k "gui/$(id -u)/$LABEL"; break; fi
+  [ "$i" = 5 ] && fail "macOS wouldn't start the helper. Run this installer again, or open Backing Track Studio Helper from Applications."
+  sleep 2
+done
 
 # A small app in Applications that starts the helper again after you've quit it.
 apps="/Applications"; [ -w "$apps" ] || { apps="$HOME/Applications"; mkdir -p "$apps"; }
