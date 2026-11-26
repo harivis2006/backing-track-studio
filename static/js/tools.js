@@ -106,6 +106,6 @@ $("#quitBtn").onclick = async () => {
   const busy = jobs.some(j => j.status === "running" || j.status === "queued");
   if (!confirm(busy ? "A song is still being processed. Quit anyway? It will carry on next time you open the app." : "Quit Backing Track Studio? Open it again any time from the app or run.sh.")) return;
   saveState(); try { await fetch(apiUrl("/api/quit"), {method:"POST"}); } catch {}
-  document.body.innerHTML = `<div style="margin:auto;text-align:center;color:#8a92a2;grid-column:1/-1"><h2 style="color:#e9ebf0">Backing Track Studio has stopped</h2><p>Open it again with the app or run.sh. You can close this tab.</p></div>`;
+  document.body.innerHTML = `<div class="stopped"><h2>Backing Track Studio has stopped</h2><p>Open it again with the app or run.sh. You can close this tab.</p></div>`;
 };
 $("#libToggle").onclick = () => { document.body.classList.toggle("nolib"); requestAnimationFrame(drawAll); };

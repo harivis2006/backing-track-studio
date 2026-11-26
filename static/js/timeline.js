@@ -56,14 +56,25 @@ function renderWaveCache(p) {
 }
 const cacheKey = p => `${view.a.toFixed(3)}:${view.b.toFixed(3)}:${p.isTake ? p.start : ""}:${p.buf ? p.buf.length : 0}:${rate}`;
 
+// Colours come from the stylesheet (--cv-*, and one variable per part), so the light and dark looks both work.
+let cv = {};
+function readTheme() {
+  cv = {tick:css("--cv-tick"), tickMajor:css("--cv-tick-major"), text:css("--cv-text"), playhead:css("--cv-playhead"),
+        loop:css("--cv-loop"), loopEdge:css("--cv-loop-edge"), sel:css("--cv-sel"), selEdge:css("--cv-sel-edge"),
+        marker:css("--cv-marker"), markerLine:css("--cv-marker-line")};
+  for (const p of allParts()) { p.color = css(p.isTake ? "--take" : `--${p.name}`) || p.color; p.cache = null; }
+}
+readTheme();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { readTheme(); requestAnimationFrame(drawAll); });
+
 function drawRuler() {
   const c = $("#ruler"); if (!c || !duration) return;
   const dpr = devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
   if (c.width !== Math.round(w * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
   const g = c.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
   const X = t => tToX(t, w);
-  if (loopA !== null) { g.fillStyle = loopOn() ? "#f5b54440" : "#ffffff14"; g.fillRect(X(loopA), 0, X(loopB) - X(loopA), h); }
-  g.font = "10px ui-monospace,Menlo,monospace"; g.textBaseline = "top";
+  if (loopA !== null) { g.fillStyle = loopOn() ? cv.loop : cv.sel; g.fillRect(X(loopA), 0, X(loopB) - X(loopA), h); }
+  g.font = "10px \"SF Mono\",ui-monospace,Menlo,monospace"; g.textBaseline = "top";
   if (beats) {
     const pxPerBar = X(view.a + beatLen() * beats.perBar);
     const every = pxPerBar > 26 ? 1 : pxPerBar > 13 ? 2 : pxPerBar > 6 ? 4 : pxPerBar > 3 ? 8 : 16;
@@ -72,25 +83,25 @@ function drawRuler() {
       const x = Math.round(X(bt)) + 0.5;
       if (isDownbeat(i)) {
         const bar = beats.barOf[i], major = (bar - 1) % every === 0;
-        g.fillStyle = major ? "#8a92a2" : "#3a404c"; g.fillRect(x, major ? 16 : 22, 1, h);
-        if (major) { g.fillStyle = "#8a92a2"; g.fillText(String(bar), x + 3, 16); }
-      } else if (pxPerBar > 30) { g.fillStyle = "#2f3540"; g.fillRect(x, 25, 1, h); }
+        g.fillStyle = major ? cv.tickMajor : cv.tick; g.fillRect(x, major ? 16 : 22, 1, h);
+        if (major) { g.fillStyle = cv.text; g.fillText(String(bar), x + 3, 16); }
+      } else if (pxPerBar > 30) { g.fillStyle = cv.tick; g.fillRect(x, 25, 1, h); }
     }
   } else {
     const step = [1, 2, 5, 10, 15, 30, 60, 120].find(s => X(view.a + s) > 50) || 300;
-    g.fillStyle = "#8a92a2";
+    g.fillStyle = cv.text;
     for (let t = Math.ceil(view.a / step) * step; t < view.b; t += step) { const x = Math.round(X(t)) + 0.5; g.fillRect(x, 18, 1, h); g.fillText(fmt(t), x + 3, 16); }
   }
   // markers: flags along the top
   for (const mk of markers) {
     const x = Math.round(X(mk.t)); if (x < -80 || x > w + 2) continue;
-    g.fillStyle = "#4fe0d2"; g.fillRect(x, 0, 1.5, h);
+    g.fillStyle = cv.marker; g.fillRect(x, 0, 1.5, h);
     g.beginPath(); g.moveTo(x, 0); g.lineTo(x + 7, 0); g.lineTo(x, 7); g.fill();
-    g.font = "600 10px -apple-system,sans-serif"; g.fillText(mk.name, x + 9, 2);
+    g.font = "600 10px \"Avenir Next\",-apple-system,sans-serif"; g.fillText(mk.name, x + 9, 2);
     g.font = "10px ui-monospace,Menlo,monospace";
   }
   const px = Math.round(X(curPos()));
-  if (px >= 0 && px <= w) { g.fillStyle = "#fff"; g.fillRect(px, 0, 1.5, h); }
+  if (px >= 0 && px <= w) { g.fillStyle = cv.playhead; g.fillRect(px, 0, 1.5, h); }
 }
 let followView = true;
 function drawAll() {
@@ -107,14 +118,14 @@ function drawAll() {
     g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, c.height);
     if (loopA !== null) {
       const la = tToX(loopA, W), lb = tToX(loopB, W);
-      g.fillStyle = loopOn() ? "#f5b54426" : "#ffffff10"; g.fillRect(la, 0, lb - la, c.height);
-      g.fillStyle = loopOn() ? "#f5b544aa" : "#ffffff40"; g.fillRect(la, 0, dpr, c.height); g.fillRect(lb - dpr, 0, dpr, c.height);
+      g.fillStyle = loopOn() ? cv.loop : cv.sel; g.fillRect(la, 0, lb - la, c.height);
+      g.fillStyle = loopOn() ? cv.loopEdge : cv.selEdge; g.fillRect(la, 0, dpr, c.height); g.fillRect(lb - dpr, 0, dpr, c.height);
     }
-    for (const mk of markers) { const x = tToX(mk.t, W); if (x >= 0 && x <= W) { g.fillStyle = "#4fe0d233"; g.fillRect(x, 0, dpr, c.height); } }
+    for (const mk of markers) { const x = tToX(mk.t, W); if (x >= 0 && x <= W) { g.fillStyle = cv.markerLine; g.fillRect(x, 0, dpr, c.height); } }
     g.drawImage(dim, 0, 0);
     const px = Math.round(tToX(pos, W));
     if (px > 0) g.drawImage(bright, 0, 0, Math.min(px, W), c.height, 0, 0, Math.min(px, W), c.height);
-    if (px >= 0 && px <= W) { g.fillStyle = "#fff"; g.fillRect(px, 0, Math.max(1, dpr * 1.5), c.height); }
+    if (px >= 0 && px <= W) { g.fillStyle = cv.playhead; g.fillRect(px, 0, Math.max(1, dpr * 1.5), c.height); }
   }
 }
 function snap(t, free) {
