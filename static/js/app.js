@@ -33,5 +33,41 @@ $("#instSel").onchange = e => {
   if (it.mute.length && current) toast(`New songs will open with ${it.mute.map(n => STEM_INFO[n].label).join(", ")} muted. Use the “${PRESETS.find(p => p[1][0] === it.mute[0])?.[0] || "Remove"}” button to do it on this song.`, {ms: 8000});
 };
 window.addEventListener("beforeunload", () => { saveState(); micStream?.getTracks().forEach(t => t.stop()); });
-syncToggles();
-refresh();
+
+// ---- start-up: when opened from the website, make sure the helper is installed and running first
+const MIN_HELPER_VERSION = "1.1.0";
+const newer = (a, b) => a.split(".").map(Number).reduce((r, x, i) => r || Math.sign(x - (+b.split(".")[i] || 0)), 0) > 0;
+async function helperStatus() {
+  try {
+    const r = await fetch(apiUrl("/api/health"), {cache: "no-store", signal: AbortSignal.timeout(2500)});
+    const j = await r.json();
+    if (j.app !== "backing-track-studio") return "missing";
+    return newer(MIN_HELPER_VERSION, j.version) ? "outdated" : "ok";
+  } catch { return "missing"; }
+}
+async function startApp() {
+  syncToggles();
+  if (HOSTED) {
+    $("#offlineHow").innerHTML = "Open <b>Backing Track Studio Helper</b> from Applications";
+    let status = await helperStatus();
+    if (status !== "ok") {
+      const install = `curl -fsSL ${location.origin}/install.sh | bash`;
+      $("#installCmd").textContent = install;
+      $("#uninstallCmd").textContent = `curl -fsSL ${location.origin}/uninstall.sh | bash`;
+      $("#copyCmd").onclick = async () => { await navigator.clipboard.writeText(install); $("#copyCmd").textContent = "Copied"; };
+      $("#setup").hidden = false;
+      while (status !== "ok") {
+        if (status === "outdated") $("#setupStatus").innerHTML = `<span class="spin"></span> Your helper is out of date — run the command above again to update it.`;
+        await sleep(2500);
+        status = await helperStatus();
+      }
+      $("#setupStatus").className = "ok"; $("#setupStatus").textContent = "✓ Connected to the helper";
+      await sleep(700);
+      $("#setup").hidden = true;
+    }
+  } else {
+    $("#offlineHow").innerHTML = "Start it again with <b>run.sh</b> or the app";
+  }
+  refresh();
+}
+startApp();

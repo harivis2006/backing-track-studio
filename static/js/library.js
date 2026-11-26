@@ -49,7 +49,7 @@ function renderLib() {
     const acts = (j.status === "error" ? `<button data-act="retry" title="Try again" aria-label="Try again">↻</button>` : "")
                + `<button data-act="del" title="${busy ? "Cancel" : "Delete"}" aria-label="${busy ? "Cancel" : "Delete"}">✕</button>`;
     const art = j.status === "done" && (j.video || j.matched || j.url)
-      ? `<div class="art"><img loading="lazy" src="/api/jobs/${j.id}/thumb" alt="" onerror="this.remove()"></div>`
+      ? `<div class="art"><img loading="lazy" src="${apiUrl(`/api/jobs/${j.id}/thumb`)}" alt="" onerror="this.remove()"></div>`
       : `<div class="art">${j.status === "error" ? "!" : busy ? "…" : "♪"}</div>`;
     return `<div class="track ${current?.id===j.id?"active":""} ${busy?"busy":""} ${j.status==="error"?"err":""}" data-id="${j.id}" title="${esc(j.title)}" tabindex="0">
       ${art}<div class="body"><div class="t">${esc(j.title)}</div><div class="s"><span>${esc(s)}</span>${tags}</div>

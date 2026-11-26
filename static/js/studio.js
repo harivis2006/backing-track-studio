@@ -152,7 +152,7 @@ function setupVideo(job, show) {
   $("#videoWrap").classList.toggle("show", !!job.video && show);
   $("#videoToggle").classList.toggle("on", !!job.video && show);
   vid.classList.toggle("large", prefs.videoLarge === true);
-  if (job.video) { vid.src = `/api/jobs/${job.id}/video`; vid.addEventListener("loadedmetadata", () => { vid.currentTime = offset; }, {once:true}); }
+  if (job.video) { vid.src = apiUrl(`/api/jobs/${job.id}/video`); vid.addEventListener("loadedmetadata", () => { vid.currentTime = offset; }, {once:true}); }
   else { vid.removeAttribute("src"); vid.load(); }
 }
 vid.addEventListener("error", () => {

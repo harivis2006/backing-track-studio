@@ -19,6 +19,7 @@ const fmt = t => { t = Math.max(0, Math.floor(t || 0)); return `${Math.floor(t/6
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function toast(msg, {type="", action, actionLabel, ms=5000} = {}) {
   const el = document.createElement("div");
@@ -32,8 +33,15 @@ function toast(msg, {type="", action, actionLabel, ms=5000} = {}) {
   while ($("#toasts").children.length > 4) $("#toasts").firstChild.remove();
   if (ms) setTimeout(close, ms);
 }
+// Where the helper (the local server that does the AI work) is. If this page was opened from the helper
+// itself (http://localhost:8765) requests stay on the same address; if it was opened from the website,
+// they go to the helper running on this computer.
+const HELPER = "http://127.0.0.1:8765";
+const HOSTED = !/^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+const apiUrl = path => (HOSTED ? HELPER : "") + path;
+
 async function api(path, opts = {}) {
-  const r = await fetch(path, opts);
+  const r = await fetch(apiUrl(path), opts);
   if (!r.ok) {
     let msg = `${r.status} ${r.statusText}`;
     try { const j = await r.json(); msg = typeof j.detail === "string" ? j.detail : msg; } catch {}

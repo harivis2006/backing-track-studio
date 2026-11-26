@@ -86,7 +86,7 @@ $("#exportGo").onclick = () => {
   if (exportFmt === "parts") {
     const q = new URLSearchParams({v: loadedVariant || "", rate, semis: rateSemis});
     toast("Preparing the parts… your download starts in a few seconds.", {ms: 6000});
-    Object.assign(document.createElement("a"), {href: `/api/jobs/${current.id}/parts.zip?${q}`, download: ""}).click();
+    Object.assign(document.createElement("a"), {href: apiUrl(`/api/jobs/${current.id}/parts.zip?${q}`), download: ""}).click();
     return;
   }
   const opts = {section: $("#exLoop").checked && loopA !== null, countIn: $("#exCount").checked && !$("#exCount").disabled, withTakes: $("#exTakes").checked};

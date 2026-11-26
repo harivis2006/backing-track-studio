@@ -11,3 +11,6 @@ server.log
 # Editor / tool settings
 .claude/
 .DS_Store
+
+# Built website (deploy/build_site.py)
+site/

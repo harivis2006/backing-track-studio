@@ -201,3 +201,17 @@ body.nolib{grid-template-columns:0 1fr} body.nolib aside{visibility:hidden}
 .menu button:hover:not(:disabled){background:var(--panel3)}
 #countdown{position:absolute;inset:0;display:none;place-items:center;pointer-events:none;z-index:10}
 #countdown span{font-size:120px;font-weight:800;color:#fff;text-shadow:0 6px 40px #000;opacity:.9}
+
+/* setup screen shown by the website when the helper isn't installed / running */
+#setup{position:fixed;inset:0;z-index:70;background:var(--bg);overflow:auto;display:grid;place-items:center;padding:30px}
+#setup[hidden]{display:none}
+.setupCard{max-width:640px;background:var(--panel);border:1px solid var(--line2);border-radius:16px;padding:28px 32px;line-height:1.55}
+.setupCard h2{margin:0 0 8px;font-size:22px}
+.setupCard ol{padding-left:20px} .setupCard li{margin:8px 0}
+.cmd{display:flex;gap:8px;align-items:center;background:var(--bg);border:1px solid var(--line2);border-radius:8px;padding:8px 10px;margin-top:6px}
+.cmd code{flex:1;font:12.5px ui-monospace,Menlo,monospace;color:var(--accent);word-break:break-all}
+.setupCard code{font:12px ui-monospace,Menlo,monospace}
+#setupStatus{margin-top:16px;color:var(--dim);display:flex;gap:10px;align-items:center}
+#setupStatus.ok{color:var(--ok)}
+.spin{width:14px;height:14px;border:2px solid var(--line2);border-top-color:var(--accent);border-radius:50%;animation:rot 0.9s linear infinite;flex:none}
+@keyframes rot{to{transform:rotate(360deg)}}

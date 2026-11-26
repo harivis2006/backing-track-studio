@@ -82,7 +82,28 @@
 </main>
 <div id="hovertip"></div>
 <div id="toasts" aria-live="polite"></div>
-<div id="offline">Can't reach Backing Track Studio — it may have stopped. Start it again with <b>run.sh</b> (or the app); this page reconnects by itself.</div>
+<div id="offline">Can't reach the Backing Track Studio helper on this Mac — it may have stopped. <span id="offlineHow">Open <b>Backing Track Studio Helper</b> from Applications</span>; this page reconnects by itself.</div>
+<div id="setup" hidden>
+  <div class="setupCard">
+    <div class="brand" style="margin:0 0 14px"><div class="logo"></div><h1 style="font-size:20px">Backing Track Studio</h1></div>
+    <h2>One-time setup: install the helper</h2>
+    <p>Songs are split by AI models that run <b>on your own Mac</b> — nothing is uploaded. A small helper app does that
+       work in the background. Install it once and this website will use it from then on.</p>
+    <ol>
+      <li>Open <b>Terminal</b> (in Applications → Utilities).</li>
+      <li>Paste this and press Return:
+        <div class="cmd"><code id="installCmd"></code><button id="copyCmd">Copy</button></div></li>
+      <li>Wait while it installs (about 5–10 minutes; it downloads ~1 GB). This page connects by itself when it's done.</li>
+    </ol>
+    <p class="hint">Needs a Mac (Apple Silicon recommended — Intel works but is slow), about 3 GB of free space and
+       <a href="https://brew.sh" target="_blank" rel="noopener">Homebrew</a> (the installer tells you if it's missing).</p>
+    <p class="hint"><b>Already installed?</b> Open <b>Backing Track Studio Helper</b> from your Applications folder.
+       If your browser asks whether this site may access <b>devices on your local network</b>, choose <b>Allow</b> —
+       that's how it talks to the helper. If you use Safari and it won't connect, try Chrome.</p>
+    <div id="setupStatus"><span class="spin"></span> Looking for the helper on this Mac…</div>
+    <p class="hint" style="margin-top:18px">Uninstall any time: <code id="uninstallCmd"></code></p>
+  </div>
+</div>
 <dialog id="exportDlg">
   <h3>Export</h3>
   <div class="choices" id="fmtChoices">

@@ -7,16 +7,55 @@ import threading
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.background import BackgroundTask
 
 from . import analysis, exports, jobs, practice, sources, takes
-from .config import STATIC, STEMS
+from .config import ALLOWED_HOSTS, ALLOWED_ORIGINS, STATIC, STEMS, VERSION
 from .util import safe_filename
 
 app = FastAPI(title="Backing Track Studio")
+
+
+@app.middleware("http")
+async def only_our_website(request: Request, call_next):
+    """The helper runs on your Mac and can download and write files, so only your own website may use it.
+
+    * Host check: refuses requests not addressed to localhost (stops "DNS rebinding" tricks).
+    * Origin check: browsers label requests from web pages with the page's origin; any site other than
+      ours is refused — including the form posts that CORS alone wouldn't stop.
+    * CORS + Chrome's local-network-access preflight: tells the browser our website is allowed in.
+    """
+    if request.headers.get("host", "") not in ALLOWED_HOSTS:
+        return PlainTextResponse("Forbidden", status_code=403)
+    origin = request.headers.get("origin")
+    if origin and origin not in ALLOWED_ORIGINS:
+        return PlainTextResponse("This website isn't allowed to use Backing Track Studio", status_code=403)
+    if request.method == "OPTIONS" and origin:  # preflight
+        headers = {
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": request.headers.get("access-control-request-headers", "content-type"),
+            "Access-Control-Max-Age": "600",
+            "Vary": "Origin",
+        }
+        if request.headers.get("access-control-request-private-network") == "true":
+            headers["Access-Control-Allow-Private-Network"] = "true"
+        return Response(status_code=204, headers=headers)
+    response = await call_next(request)
+    if origin:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Expose-Headers"] = "Content-Disposition"
+        response.headers["Vary"] = "Origin"
+    return response
+
+
+@app.get("/api/health")
+def health():
+    """Lets the website check that the helper is installed and running."""
+    return {"app": "backing-track-studio", "version": VERSION}
 
 
 def _job(job_id: str, done: bool = False) -> dict:

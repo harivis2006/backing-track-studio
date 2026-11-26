@@ -10,6 +10,15 @@ MODELS = ROOT / "models"                                    # downloaded AI mode
 DATA = Path(os.environ.get("BTS_DATA", ROOT / "data"))       # one folder per song
 HOST = os.environ.get("BTS_HOST", "127.0.0.1")
 PORT = int(os.environ.get("BTS_PORT", 8765))
+VERSION = "1.1.0"
+
+# The hosted website that may use this helper (plus the helper's own page). Any other website is refused,
+# so a random page you visit can't control the helper. Add more with BTS_ALLOWED_ORIGINS="https://a,https://b".
+SITE_URL = "https://backing-track-studio.vercel.app"
+ALLOWED_ORIGINS = {SITE_URL, f"http://localhost:{PORT}", f"http://127.0.0.1:{PORT}"} | {
+    o.strip().rstrip("/") for o in os.environ.get("BTS_ALLOWED_ORIGINS", "").split(",") if o.strip()}
+# Only answer requests addressed to this machine by name (blocks "DNS rebinding" tricks).
+ALLOWED_HOSTS = {f"localhost:{PORT}", f"127.0.0.1:{PORT}", "localhost", "127.0.0.1"}
 
 DATA.mkdir(parents=True, exist_ok=True)
 MODELS.mkdir(exist_ok=True)

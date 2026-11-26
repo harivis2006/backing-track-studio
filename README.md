@@ -16,7 +16,23 @@ Everything runs locally on your Mac — the AI models run on Apple Silicon's GPU
 - **Record yourself** over the track (with latency correction, mic level meter, multiple takes)
 - **Export** MP3 / WAV / video, optionally with a count-in, or every part as separate WAVs for a DAW
 
-## Running it
+## Using the website
+
+The page is hosted at **https://backing-track-studio.vercel.app**; the AI work happens on your own Mac via a
+small **helper** (this repo's server) that the website talks to at `http://127.0.0.1:8765`.
+The first visit shows a one-line installer:
+
+```bash
+curl -fsSL https://backing-track-studio.vercel.app/install.sh | bash
+```
+
+It installs the helper into `~/Library/Application Support/Backing Track Studio`, starts it at login, and adds
+**Backing Track Studio Helper** to Applications. Remove it with `…/uninstall.sh | bash` (add `-s -- --all` to also
+delete your songs). The helper only accepts requests from the website and from its own page.
+
+To publish a new version of the site: `python3 deploy/build_site.py`, then deploy the `site/` folder.
+
+## Running it from source
 
 Requirements: macOS on Apple Silicon (an Intel Mac or Linux works, just slower), Python 3.12, `ffmpeg`, Node.js.
 
@@ -50,6 +66,7 @@ page ◀── parts (FLAC), peaks.json ◀── api.py ◀── practice.py (
 | `static/index.html`, `static/css/app.css` | The page |
 | `static/js/` | The front end, one file per feature — see `static/js/README.md` |
 | `macos/` | Double-click launcher app |
+| `deploy/` | Website build script, installer / uninstaller, hosting settings |
 | `data/` | Your songs (one folder each; not in git) |
 | `models/` | Downloaded AI model weights (not in git) |
 
