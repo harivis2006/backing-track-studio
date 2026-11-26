@@ -15,7 +15,7 @@ function teardown() {
   if (abSaved) { abSaved = null; $("#abBtn").setAttribute("aria-pressed", false); $("#abNote").style.display = "none"; }
   stopAll(); playing = false;
   for (const p of allParts()) { try { p.gain?.disconnect(); } catch {} }
-  stems = []; takes = []; beats = null; rawBeats = null; beatOv = {}; markers = []; songKey = null; setChords([]); setSections(null); syncToggles(); $("#tempoMenu")?.remove();
+  stems = []; takes = []; beats = null; rawBeats = null; beatOv = {}; markers = []; songKey = null; setChords([]); setSections(null); setNotes(null); syncToggles(); $("#tempoMenu")?.remove();
   $("#stemRows").innerHTML = ""; $("#takeRows").innerHTML = ""; $("#tempoLabel").textContent = "";
 }
 const abFlag = (p, k) => abSaved ? (abSaved.find(x => x[0] === p)?.[k] ?? (k === 1 ? p.mute : p.solo)) : (k === 1 ? p.mute : p.solo);
@@ -62,7 +62,7 @@ async function openJob(id) {
   if (token !== loadToken) return;
   duration = peaks.duration || job.duration || 0;
   rawBeats = peaks.beats; beatOv = st.beatOv || {}; beats = buildGrid(rawBeats, beatOv);
-  songKey = peaks.key || null; setChords(peaks.chords?.list, peaks.chordsUser); setSections(peaks.sections); markers = Array.isArray(st.markers) ? st.markers.filter(m => m.t < duration) : [];
+  songKey = peaks.key || null; setChords(peaks.chords?.list, peaks.chordsUser); setSections(peaks.sections); setNotes(peaks.melody); markers = Array.isArray(st.markers) ? st.markers.filter(m => m.t < duration) : [];
   setView(st.viewA ?? 0, st.viewB && st.viewB <= duration + 0.01 ? st.viewB : duration, {keep:true}); updateKeyName();
   updateTempoLabel();
   stems = job.stems.map(name => buildRow(name, peaks.stems[name], st));
@@ -157,18 +157,18 @@ function setLoading(frac, on) {
 }
 // ---- video: a panel you can resize by dragging its bottom edge, go fullscreen with, or pop out (picture-in-picture)
 const vwrap = $("#videoWrap");
-const VIDEO_MIN = 120, videoMax = () => Math.max(VIDEO_MIN, Math.round(Math.min(innerHeight * 0.55, innerHeight - 600)));  // always leave room for every part (F for fullscreen)
+const VIDEO_MIN = 120, videoMax = () => Math.max(VIDEO_MIN, Math.round(Math.min(innerHeight * 0.55, innerHeight - 620)));  // always leave room for every part (F for fullscreen)
 function setVideoHeight(h, save = true) {
   h = clamp(Math.round(h), VIDEO_MIN, videoMax());
   vwrap.style.height = h + "px";
   if (save) { prefs.videoH = h; savePrefs(); }
-  requestAnimationFrame(drawAll);
+  requestAnimationFrame(() => { fitLanes(); drawAll(); });
 }
 function showVideo(show) {
   vwrap.classList.toggle("show", show); $("#videoToggle").classList.toggle("on", show);
   if (!show && document.fullscreenElement === vwrap) document.exitFullscreen();
   if (!show && vwrap.classList.contains("pseudo")) fillWindow(false);
-  saveState(); requestAnimationFrame(drawAll);
+  saveState(); requestAnimationFrame(() => { fitLanes(); drawAll(); });
 }
 function setupVideo(job, show) {
   $("#videoToggle").hidden = !job.video;
@@ -252,12 +252,15 @@ $("#presets").appendChild(reset);
 
 // ---- lanes shrink (down to a point) so every part fits on screen next to the video
 function fitLanes() {
-  const rows = $("#rows"), n = $("#stemRows").children.length; if (!n || $("#studio").style.display === "none") return;
-  const ruler = rows.querySelector(".ruler")?.offsetHeight || 40, lanes = $("#chordRow").hidden ? 0 : $("#chordRow").offsetHeight;
-  const per = (rows.clientHeight - ruler - lanes - 12) / n - 6;
-  const h = clamp(Math.floor(per), 30, 58);
-  if (rows.style.getPropertyValue("--wave-h") === h + "px") return;
-  rows.style.setProperty("--wave-h", h + "px"); rows.classList.toggle("compact", h < 46);
-  requestAnimationFrame(drawAll); setTimeout(drawAll, 300);  // and again once the height transition is over
+  const rows = $("#rows"), stemsEl = $("#stemRows"), n = stemsEl.children.length;
+  if (!n || $("#studio").style.display === "none") return;
+  const before = rows.style.getPropertyValue("--wave-h");
+  // the parts (not the takes under them) should end where the tile ends: measure, then trim the lanes to fit
+  const set = h => { rows.style.setProperty("--wave-h", h + "px"); rows.classList.toggle("compact", h < 46); };
+  set(58);
+  const spare = () => rows.getBoundingClientRect().bottom - 8 - stemsEl.getBoundingClientRect().bottom;
+  let h = 58;
+  for (let i = 0; i < 5 && spare() < -0.5 && h > 22; i++) { h = Math.max(22, Math.floor(h + spare() / n)); set(h); }
+  if (rows.style.getPropertyValue("--wave-h") !== before) requestAnimationFrame(drawAll);
 }
 new ResizeObserver(() => fitLanes()).observe($("#rows"));

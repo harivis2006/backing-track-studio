@@ -17,7 +17,10 @@ Everything runs locally on your Mac — the AI models run on Apple Silicon's GPU
   (Edit chords in the chart, or double-click a chord in the lane) — your fixes are saved with the song
 - **Song form:** each time through the tune ("Chorus 1, 2, 3…" — the 32-bar AABA, the blues, the form under a
   solo) is found and shown above the chords; click one to loop it, Shift-click to loop several
-- **Tuner (T):** floats over the studio while you play; shows the note written for your instrument and the cents
+- **Tuner (T):** floats over the studio while you play; shows the note written for your instrument and the cents,
+  with a drone (the song's key by default) for long tones and scales
+- **Sax notes (N):** the notes the sax / brass plays, pitch-tracked from its separated part, as a mini piano roll
+  written for your instrument — click one to jump there
 - **Your instrument:** new songs open with your part muted; keys are shown written for E♭ / B♭ / F instruments
 - **Record yourself** over the track (with latency correction, mic level meter, multiple takes)
 - **Export** MP3 / WAV / video, optionally with a count-in, or every part as separate WAVs for a DAW
@@ -61,7 +64,7 @@ Settings via environment variables: `BTS_PORT` (default 8765), `BTS_HOST` (defau
 page (static/)  ──upload / link──▶  api.py ──▶ queue ──▶ pipeline.py (one song at a time)
                                                    1. sources.py     get audio (upload / YouTube / Spotify→YouTube)
                                                    2. separation.py  BS-RoFormer SW → 6 parts; UVR HP-Wind → sax/brass
-                                                   3. analysis.py    waveforms, beats & bars (Beat This!), key, chords (chords.py, BTC), form (sections.py)
+                                                   3. analysis.py    waveforms, beats & bars (Beat This!), key, chords (chords.py, BTC), form (sections.py), horn notes (melody.py)
 page ◀── parts (FLAC), peaks.json ◀── api.py ◀── practice.py (speed/key versions), takes.py, exports.py
 ```
 

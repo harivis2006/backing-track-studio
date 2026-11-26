@@ -42,6 +42,7 @@ function paletteCommands() {
       add("Chords", prefs.chordsOn === false ? "Show the chords" : "Hide the chords", () => $("#chordsBtn").click(), {keys: "G"});
       if (+prefs.inst) add("Chords", writtenForYou() ? "Show chords at concert pitch" : "Write chords for my instrument", () => $("#chordMode").click());
     }
+    if (hasNotes()) add("Notes", prefs.notesOn === false ? "Show the sax notes" : "Hide the sax notes", () => $("#notesBtn").click(), {keys: "N"});
     if (current.video) {
       add("View", vwrap.classList.contains("show") ? "Hide the video" : "Show the video", () => $("#videoToggle").click(), {keys: "V"});
       add("View", "Video fullscreen", toggleFullscreen, {keys: "F"});

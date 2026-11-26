@@ -94,6 +94,7 @@
         <button class="toggle" id="countInBtn" aria-pressed="false" title="Count in one bar before playing (C)">Count-in</button>
         <button class="toggle" id="metroBtn" aria-pressed="false" title="Metronome click (K)">Click</button>
         <button class="toggle" id="chordsBtn" aria-pressed="true" title="Show / hide the chords (G)" hidden>Chords</button>
+        <button class="toggle" id="notesBtn" aria-pressed="true" title="Show / hide the notes the sax / brass plays (N)" hidden>Notes</button>
         <button class="toggle" id="abBtn" aria-pressed="false" title="Compare: hear the original song with nothing removed (A)">A/B</button>
         <span id="abNote">Hearing the original</span>
       </div>
@@ -103,6 +104,7 @@
       <div id="loadingBar"></div>
       <div class="row ruler"><div class="ctl"><span id="tempoLabel"></span><span class="zoomctl"><span id="zoomLabel"></span><button id="zoomOut" title="Zoom out (Shift+Z fits the whole song)">−</button><button id="zoomIn" title="Zoom in (Z) — or pinch / ⌘-scroll on the waveforms">+</button><button id="zoomFit" title="Show the whole song (Shift+Z)" hidden>Fit</button><button id="addMarker" title="Add a marker at the playhead (M) — or double-click the ruler"><span class="wide">+ Marker</span><span class="narrow">⚑</span></button></span></div><div class="wavewrap" style="height:32px"><canvas id="ruler"></canvas></div></div>
       <div class="row chordrow" id="chordRow" hidden><div class="ctl"><span class="lbl">Chords</span><span class="zoomctl"><button id="chordMode" hidden></button><button id="chartBtn" title="Chord chart (H)">Chart</button></span></div><div class="wavewrap"><canvas id="formCanvas" hidden></canvas><canvas id="chordCanvas"></canvas></div></div>
+      <div class="row noterow" id="noteRow" hidden><div class="ctl"><span class="lbl">Sax notes</span><b id="noteNow" title="The note the horn is playing now"></b></div><div class="wavewrap"><canvas id="noteCanvas"></canvas></div></div>
       <div id="stemRows"></div>
       <div id="takeRows"></div>
       <div id="hoverline"></div>
@@ -218,6 +220,7 @@
   <div class="tmeter"><i class="tzone"></i><i class="tzero"></i><i id="tNeedle"></i></div>
   <div class="tscale"><span>♭ 50</span><span>0</span><span>50 ♯</span></div>
   <div class="tread"><b id="tCents">Play a long note</b><span id="tFreq"></span></div>
+  <div class="tdrone"><button id="droneBtn" class="toggle" aria-pressed="false" title="A steady note to tune long tones and scales against">Drone</button><select id="droneNote" aria-label="Drone note (written for you)"></select><input type="range" id="droneVol" min="0" max="1" step="0.01" value="0.35" aria-label="Drone volume"></div>
   <div class="ta4">A4 = <button id="a4Down" aria-label="Lower the reference">−</button><b id="a4Out">440</b> Hz<button id="a4Up" aria-label="Raise the reference">+</button></div>
 </dialog>
 
@@ -237,6 +240,7 @@
     <tr><td><kbd>V</kbd> · <kbd>F</kbd></td><td>Show / hide the video · video fullscreen (drag the bar under the video to resize it)</td></tr>
     <tr><td><kbd>A</kbd></td><td>A/B: compare with the original song</td></tr>
     <tr><td><kbd>H</kbd> · <kbd>G</kbd></td><td>Chord chart (Edit chords there to fix them; or double-click a chord in the lane) · show / hide the chords</td></tr>
+    <tr><td><kbd>N</kbd></td><td>Show / hide the notes the sax / brass plays (written for your instrument; click one to jump there)</td></tr>
     <tr><td><kbd>T</kbd></td><td>Tuner — shows the note written for your instrument, and how many cents sharp or flat</td></tr>
     <tr><td><kbd>E</kbd></td><td>Export…</td></tr>
     <tr><td><kbd>M</kbd> · <kbd>,</kbd> <kbd>.</kbd></td><td>Add a marker · jump to the previous / next marker or chorus</td></tr>
@@ -277,6 +281,7 @@
 <script src="/static/js/tools.js"></script>
 <script src="/static/js/chords.js"></script>
 <script src="/static/js/sections.js"></script>
+<script src="/static/js/notes.js"></script>
 <script src="/static/js/tuner.js"></script>
 <script src="/static/js/palette.js"></script>
 <script src="/static/js/bento.js"></script>

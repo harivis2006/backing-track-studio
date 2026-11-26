@@ -63,7 +63,8 @@ function readTheme() {
         loop:css("--cv-loop"), loopEdge:css("--cv-loop-edge"), sel:css("--cv-sel"), selEdge:css("--cv-sel-edge"),
         marker:css("--cv-marker"), markerLine:css("--cv-marker-line"),
         laneFont:`600 12.5px ${css("--font") || "sans-serif"}`, chord:css("--cv-chord"), chordText:css("--cv-chord-text"), chordOn:css("--cv-chord-on"), chordOnText:css("--cv-chord-on-text"),
-        formFont:`600 11.5px ${css("--font") || "sans-serif"}`, formText:css("--cv-form-text")};
+        formFont:`600 11.5px ${css("--font") || "sans-serif"}`, formText:css("--cv-form-text"),
+        noteFont:`600 10px ${css("--font") || "sans-serif"}`, note:css("--winds"), noteOn:css("--acc")};
   for (const p of allParts()) { p.color = css(p.isTake ? "--take" : `--${p.name}`) || p.color; p.cache = null; }
 }
 readTheme();
@@ -112,7 +113,7 @@ function drawAll() {
   // keep the playhead on screen while playing (page forward like a DAW)
   if (playing && followView && viewLen() < duration - 0.01 && (pos > view.b - viewLen() * 0.03 || pos < view.a))
     setView(pos - viewLen() * 0.05, pos - viewLen() * 0.05 + viewLen(), {keep: true});
-  drawRuler(); drawChords(); drawSections();
+  drawRuler(); drawChords(); drawSections(); drawNotes();
   for (const p of allParts()) {
     const c = p.canvas; if (!c) continue;
     if (!p.cache || p.cache.w !== c.clientWidth || p.cache.h !== c.clientHeight || p.cache.key !== cacheKey(p)) renderWaveCache(p);
@@ -288,7 +289,7 @@ function updateTime() {
   const bb = barBeatAt(t);
   $("#barbeat").textContent = bb;
   $("#fsTime").textContent = `${fmt(t)} / ${fmt(duration)}${bb ? " · " + bb : ""}`;
-  updateChordNow();
+  updateChordNow(); updateNoteNow();
 }
 (function tick() { if (playing) { drawAll(); updateTime(); syncVideo(); updateLoopPass(); } requestAnimationFrame(tick); })();
 setInterval(() => { if (playing) { scheduleAhead(); syncVideo(); } }, 40);  // also runs when the tab is hidden

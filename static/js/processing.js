@@ -15,6 +15,8 @@ const STEPS = [
 const TIPS = [
   ["⌘K", "Jump to any song or command from anywhere."],
   ["H", "Open the chord chart — written for your instrument."],
+  ["N", "See every note the sax plays, written for you — click one to jump there."],
+  ["T", "Tune up: the tuner floats over the studio while you play."],
   ["[ ]", "Slow down or speed up in 5% steps, without changing the pitch."],
   ["L", "Drag across a waveform to pick a section, then loop it."],
   ["R", "Record yourself over the band, with latency correction."],

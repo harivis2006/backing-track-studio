@@ -173,7 +173,7 @@ function updateChordNow() {
   $("#fsChord").textContent = chordName(cur) + (nxt ? `  → ${chordName(nxt)}` : "");
   if (chartDlg.open) highlightChartBar();
 }
-const refreshChordText = () => { updateChordNow.force = true; updateChordNow(); drawChords(); if (chartDlg.open && !chartEditing()) renderChart(); };
+const refreshChordText = () => { updateChordNow.force = true; updateChordNow(); drawChords(); if (typeof refreshNoteText === "function") refreshNoteText(); if (chartDlg.open && !chartEditing()) renderChart(); };
 
 // ---- concert / written for you
 function syncChordMode() {
