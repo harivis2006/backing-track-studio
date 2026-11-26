@@ -39,6 +39,28 @@ async function helperStatus() {
     return newer(MIN_HELPER_VERSION, j.version) ? "outdated" : "ok";
   } catch { return "missing"; }
 }
+// the visitor's device, if it can't run the helper (it's macOS only)
+function otherDevice() {
+  const ua = navigator.userAgent, plat = navigator.userAgentData?.platform || navigator.platform || "";
+  if (/iPhone|iPod/.test(ua)) return "an iPhone";
+  if (/iPad/.test(ua) || (/Mac/.test(plat) && navigator.maxTouchPoints > 1)) return "an iPad";
+  if (/Android/.test(ua)) return "Android";
+  if (/Mac/.test(plat)) return null;
+  if (/Win/.test(plat)) return "Windows";
+  if (/CrOS/.test(ua)) return "a Chromebook";
+  if (/Linux/.test(plat)) return "Linux";
+  return null;
+}
+// copy to the clipboard, falling back to selecting the text so ⌘C works
+async function copyText(text, btn, selectEl) {
+  const was = btn.textContent;
+  try { await navigator.clipboard.writeText(text); btn.textContent = "Copied ✓"; }
+  catch {
+    if (selectEl) { const r = document.createRange(); r.selectNodeContents(selectEl); getSelection().removeAllRanges(); getSelection().addRange(r); }
+    btn.textContent = "Press ⌘C";
+  }
+  clearTimeout(btn._t); btn._t = setTimeout(() => btn.textContent = was, 2200);
+}
 async function startApp() {
   syncToggles(); showWelcome();
   if (HOSTED) {
@@ -48,7 +70,20 @@ async function startApp() {
       const install = `curl -fsSL ${location.origin}/install.sh | bash`;
       $("#installCmd").textContent = install;
       $("#uninstallCmd").textContent = `curl -fsSL ${location.origin}/uninstall.sh | bash`;
-      $("#copyCmd").onclick = async () => { await navigator.clipboard.writeText(install); $("#copyCmd").textContent = "Copied"; };
+      $("#copyCmd").onclick = () => copyText(install, $("#copyCmd"), $("#installCmd"));
+      $("#ctaInstall").onclick = e => {
+        e.preventDefault();
+        $("#install").scrollIntoView({behavior: reducedMotion ? "auto" : "smooth", block: "center"});
+        setTimeout(() => { const c = $("#install .cmd"); c.classList.remove("flash"); void c.offsetWidth; c.classList.add("flash"); }, 500);
+      };
+      const os = otherDevice();
+      if (os) {
+        $("#notMac").hidden = false;
+        $("#notMac").innerHTML = `<span>You're on ${os}. Backing Track Studio runs on a <b>Mac</b> — open this page on your Mac to install it.</span><button id="copyLink">Copy link</button>`;
+        $("#copyLink").onclick = () => copyText(location.origin, $("#copyLink"));
+        $("#ctaInstall").textContent = "See how to install";
+        $("#setupStatus").innerHTML = "Open this page on a Mac to install the helper.";
+      }
       $("#setup").hidden = false; showLanding();
       while (status !== "ok") {
         if (status === "outdated") $("#setupStatus").innerHTML = `<span class="spin"></span> Your helper is out of date — run the command above again to update it.`;
