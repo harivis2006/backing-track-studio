@@ -2,7 +2,9 @@
 
   * Uploads:  saved by the API as source.<ext>; if the file has a real video track we keep a
               browser-playable copy as video.mp4.
-  * YouTube:  yt-dlp downloads 720p H.264 video.mp4 (audio is taken from it).
+  * YouTube:  yt-dlp first downloads just the audio stream (small, so splitting starts right away), then the
+              720p H.264 video.mp4 in the background while the AI works. Both carry the very same audio
+              stream, so the parts line up with the video exactly.
   * Spotify:  Spotify audio is DRM-protected, so we never download from Spotify. We read the song's
               title / artist / length from its public page and download the same recording from YouTube.
 
@@ -14,6 +16,7 @@ import io
 import json
 import re
 import subprocess
+import threading
 import urllib.request
 from pathlib import Path
 
@@ -32,15 +35,17 @@ def _auto_title(job_id: str, title: str | None) -> None:
     if title and not jobs.jobs[job_id].get("renamed"):
         jobs.update(job_id, title=title)
 
-def download_video(job_id: str, progress: Progress) -> None:
+def download_video(job_id: str, progress: Progress) -> tuple[str, threading.Thread | None]:
+    """Download a YouTube (or other yt-dlp) link. Returns the audio file to split, and the thread still
+    downloading video.mp4 (None if the video is already complete). Join the thread before using the video."""
     import yt_dlp
 
-    jdir = job_dir(job_id)
-    opts = {**YTDLP_BASE, "format": YTDLP_FORMAT, "merge_output_format": "mp4",
-            "outtmpl": str(jdir / "video.%(ext)s"),
-            "progress_hooks": [_download_hook(progress, "Downloading video")]}
-    with yt_dlp.YoutubeDL(opts) as ydl:
-        info = ydl.extract_info(jobs.jobs[job_id]["url"], download=False)
+    jdir, url = job_dir(job_id), jobs.jobs[job_id]["url"]
+    video_opts = {**YTDLP_BASE, "format": YTDLP_FORMAT, "merge_output_format": "mp4",
+                  "outtmpl": str(jdir / "video.%(ext)s")}
+    ydl = yt_dlp.YoutubeDL(video_opts)  # stream links only work from the session that found them: keep it for the video
+    try:
+        info = ydl.extract_info(url, download=False)
         if info.get("_type") == "playlist":
             raise RuntimeError("That's a playlist link; paste a link to a single video")
         if info.get("is_live") or info.get("live_status") in ("is_live", "is_upcoming", "post_live"):
@@ -49,7 +54,55 @@ def download_video(job_id: str, progress: Progress) -> None:
             raise RuntimeError(f"Video is longer than {MAX_MINUTES} minutes")
         _auto_title(job_id, info.get("title"))
         save_cover(jdir, info.get("thumbnail"))
-        ydl.process_info(info)
+
+        # the audio stream the video will be merged with: fetch that same stream on its own first
+        audio = next((f for f in info.get("requested_formats") or [] if f.get("vcodec") == "none"), None)
+        audio_file = audio and _audio_only(url, audio["format_id"], jdir, progress)
+        if not audio_file:  # one file with both (old videos), or YouTube refused the audio on its own: get it all now
+            for p in jdir.glob("audio.*"):
+                p.unlink(missing_ok=True)
+            ydl.add_progress_hook(_download_hook(progress, "Downloading video"))
+            ydl.process_info(info)
+            _name_video(jdir)
+            ydl.close()
+            return "video.mp4", None
+    except BaseException:
+        ydl.close()
+        raise
+
+    def video():
+        try:
+            ydl.process_info(info)
+            _name_video(jdir)
+        except Exception as e:  # noqa: BLE001 — the parts are what matter; the song just won't have a video
+            log.warning("video download for %s failed: %s", job_id, e)
+            for p in jdir.glob("video.*"):
+                p.unlink(missing_ok=True)
+        finally:
+            ydl.close()
+    thread = threading.Thread(target=video, daemon=True, name=f"video-{job_id}")
+    thread.start()
+    return audio_file, thread
+
+
+def _audio_only(url: str, format_id: str, jdir: Path, progress: Progress) -> str | None:
+    """Download just the given audio stream as audio.<ext>; None if that didn't work."""
+    import yt_dlp
+
+    opts = {**YTDLP_BASE, "format": format_id, "outtmpl": str(jdir / "audio.%(ext)s"), "retries": 2,
+            "progress_hooks": [_download_hook(progress, "Downloading audio")]}
+    try:
+        with yt_dlp.YoutubeDL(opts) as ya:
+            ya.extract_info(url, download=True)
+        return next(p.name for p in jdir.glob("audio.*") if not p.name.endswith(".part"))
+    except jobs.Cancelled:
+        raise
+    except Exception as e:  # noqa: BLE001
+        log.info("audio-only download didn't work (%s); downloading the whole video instead", e)
+        return None
+
+
+def _name_video(jdir: Path) -> None:
     out = next(p for p in jdir.glob("video.*") if not p.name.endswith(".part"))
     if out.name != "video.mp4":
         out.rename(jdir / "video.mp4")

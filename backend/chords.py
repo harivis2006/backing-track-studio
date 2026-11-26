@@ -185,8 +185,6 @@ def chord_model():
 # ---------------------------------------------------------------- recognising chords
 def _fold_to_pitch_classes(mag):
     """CQT magnitudes (144 bins, 2 per semitone from C1) -> total energy per pitch class C..B."""
-    import numpy as np
-
     per_bin = mag.sum(axis=1)
     return [float(per_bin[k::2 * 12].sum() + per_bin[k + 1::2 * 12].sum()) for k in range(0, 24, 2)]
 

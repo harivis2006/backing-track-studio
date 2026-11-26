@@ -18,6 +18,7 @@ def process(job_id: str) -> None:
     stems_dir.mkdir(exist_ok=True)
     tmp.mkdir(exist_ok=True)
     started = time.time()
+    video_thread = None  # YouTube links: the video keeps downloading while the AI works
     is_link = bool(job.get("url"))
     progress = Progress(job_id, WEIGHTS_LINK if is_link else WEIGHTS_FILE)
     jobs.update(job_id, status="running", error=None, eta=None)
@@ -29,10 +30,12 @@ def process(job_id: str) -> None:
             sources.download_spotify(job_id, progress)
         jobs.update(job_id, video=False)  # Spotify songs are audio-only
     elif is_link:
-        progress.enter("fetch", "Downloading video")
-        if not (jdir / "video.mp4").exists():
-            sources.download_video(job_id, progress)
-        jobs.update(job_id, source="video.mp4", video=True)
+        progress.enter("fetch", "Downloading audio")
+        if (jdir / "video.mp4").exists():  # a retry: everything is already here
+            jobs.update(job_id, source="video.mp4", video=True)
+        else:
+            source, video_thread = sources.download_video(job_id, progress)
+            jobs.update(job_id, source=source, **({"video": True} if source == "video.mp4" else {}))
     elif "video" not in job:
         progress.enter("fetch", "Checking for video")
         jobs.update(job_id, video=sources.keep_video(jdir, job["source"]))
@@ -69,10 +72,22 @@ def process(job_id: str) -> None:
     separation.finalize_stems(stems_dir)
     analysis.compute_peaks(jdir)
     mix.unlink(missing_ok=True)  # the parts are all we need; the original download/upload is kept
+    if video_thread:
+        audio_only = jdir / jobs.jobs[job_id]["source"]  # name it before the source switches to the video
+        if video_thread.is_alive():
+            progress.set(0.99, label="Finishing the video download")
+            video_thread.join()
+        if (jdir / "video.mp4").exists():
+            jobs.update(job_id, source="video.mp4", video=True)
+            if audio_only.name != "video.mp4":
+                audio_only.unlink(missing_ok=True)  # the video carries the very same audio
+        else:
+            jobs.update(job_id, video=False)
     jobs.update(job_id, status="done", stage="Done", progress=1.0, eta=None,
                 seconds=round(time.time() - started, 1), model=SPLIT_MODEL,
                 stems=[s for s in STEMS if (stems_dir / f"{s}.flac").exists()])
-    log.info("job %s done in %.1fs", job_id, time.time() - started)
+    log.info("job %s done in %.1fs (%s)", job_id, time.time() - started,
+             ", ".join(f"{k} {v:.0f}s" for k, v in progress.times().items()))
 
 
 def friendly_error(e: Exception) -> str:

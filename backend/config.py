@@ -10,7 +10,7 @@ MODELS = ROOT / "models"                                    # downloaded AI mode
 DATA = Path(os.environ.get("BTS_DATA", ROOT / "data"))       # one folder per song
 HOST = os.environ.get("BTS_HOST", "127.0.0.1")
 PORT = int(os.environ.get("BTS_PORT", 8765))
-VERSION = "1.6.0"
+VERSION = "1.7.0"
 
 # The hosted website that may use this helper (plus the helper's own page). Any other website is refused,
 # so a random page you visit can't control the helper. Add more with BTS_ALLOWED_ORIGINS="https://a,https://b".
@@ -41,12 +41,12 @@ PEAK_COLUMNS = 2000    # resolution of the waveform overview sent to the page
 
 # YouTube: 720p H.264 + AAC plays in every browser and keeps files a sensible size.
 YTDLP_FORMAT = "bv*[vcodec^=avc1][height<=720]+ba[ext=m4a]/b[ext=mp4][height<=720]/bv*[height<=720]+ba/b"
-YTDLP_BASE = {"quiet": True, "no_warnings": True, "noplaylist": True,
+YTDLP_BASE = {"quiet": True, "no_warnings": True, "noprogress": True, "noplaylist": True,
               "js_runtimes": {"node": {}}}  # YouTube extraction needs a JavaScript runtime
 
 # Share of the progress bar each processing stage gets (the main split dominates;
 # the sax/brass model takes ~10% as long).
-WEIGHTS_LINK = {"fetch": 0.10, "decode": 0.02, "split": 0.77, "winds": 0.09, "finish": 0.02}
+WEIGHTS_LINK = {"fetch": 0.04, "decode": 0.02, "split": 0.83, "winds": 0.09, "finish": 0.02}  # audio-only download: quick
 WEIGHTS_FILE = {"fetch": 0.01, "decode": 0.02, "split": 0.86, "winds": 0.09, "finish": 0.02}
 
 # Practice versions: how many speed/key versions to keep per song (they take disk space).

@@ -113,6 +113,7 @@ class Progress:
         self.last_write = 0.0
         self.compute_start = None
         self.compute_base = 0.0
+        self.entered: list[tuple[str, float]] = []  # (stage, when) — for the timing line in the log
 
     def _base(self, stage: str) -> float:
         return sum(self.weights[s] for s in self.order[: self.order.index(stage)])
@@ -120,10 +121,17 @@ class Progress:
     def enter(self, stage: str, label: str) -> None:
         check_cancel(self.job_id)
         self.stage = stage
+        if not self.entered or self.entered[-1][0] != stage:
+            self.entered.append((stage, time.time()))
         if stage in ("split", "winds") and self.compute_start is None:
             self.compute_start = time.time()
             self.compute_base = self._base(stage)
         self.set(0.0, label=label, force=True)
+
+    def times(self) -> dict[str, float]:
+        """Seconds spent in each stage so far."""
+        marks = self.entered + [("", time.time())]
+        return {s: b - a for (s, a), (_, b) in zip(marks, marks[1:])}
 
     def set(self, fraction: float, label: str | None = None, force: bool = False) -> None:
         check_cancel(self.job_id)

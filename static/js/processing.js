@@ -29,7 +29,7 @@ const TIPS = [
 function stepOf(j) {
   if (j.status === "done") return 4;
   const s = (j.stage || "").toLowerCase();
-  if (/saving|analys/.test(s)) return 3;
+  if (/saving|analys|finishing/.test(s)) return 3;
   if (/sax|brass|woodwind/.test(s)) return 2;
   if (/split|loading ai/.test(s)) return 1;
   return 0;

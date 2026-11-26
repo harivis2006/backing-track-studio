@@ -32,22 +32,35 @@ function noteIndexAt(t) {
   return -1;
 }
 
+// the notes on screen and their pitch range — worked out again only when the view moves, not every frame
+let rangeCache = null;
+function noteRange() {
+  const key = `${view.a}:${view.b}:${hornNotes.length}`;
+  if (rangeCache?.key === key) return rangeCache.r;
+  let lo = 0, hi = hornNotes.length;   // first note ending after the view starts (notes are in time order)
+  while (lo < hi) { const k = (lo + hi) >> 1; if (hornNotes[k].e < view.a) lo = k + 1; else hi = k; }
+  let first = lo, last = first - 1;
+  while (last + 1 < hornNotes.length && hornNotes[last + 1].t <= view.b) last++;
+  let r = null;
+  if (last >= first) {
+    // ignore the odd stray note (bleed, an octave slip) when picking the range; strays are pinned to the edge
+    const ms = hornNotes.slice(first, last + 1).map(n => n.m).sort((a, b) => a - b);
+    let l = ms[Math.floor(ms.length * 0.03)], h = ms[Math.ceil(ms.length * 0.97) - 1];
+    if (h - l < 12) { const mid = (h + l) / 2; l = Math.floor(mid - 6); h = Math.ceil(mid + 6); }
+    r = {first, last, lo: l, hi: h};
+  }
+  rangeCache = {key, r};
+  return r;
+}
+
 function drawNotes() {
   const c = $("#noteCanvas"); if (!c || $("#noteRow").hidden || !duration) return;
   const dpr = devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
   if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
   const g = c.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
   // pitch range: what's on screen, at least an octave, so the line's shape reads at any zoom
-  let first = -1, last = -1;
-  for (let i = 0; i < hornNotes.length; i++) {
-    const n = hornNotes[i]; if (n.e < view.a || n.t > view.b) continue;
-    if (first < 0) first = i; last = i;
-  }
-  if (first < 0) return;
-  // ignore the odd stray note (bleed, an octave slip) when picking the range; strays are pinned to the edge
-  const ms = hornNotes.slice(first, last + 1).map(n => n.m).sort((a, b) => a - b);
-  let lo = ms[Math.floor(ms.length * 0.03)], hi = ms[Math.ceil(ms.length * 0.97) - 1];
-  if (hi - lo < 12) { const mid = (hi + lo) / 2; lo = Math.floor(mid - 6); hi = Math.ceil(mid + 6); }
+  const r = noteRange(); if (!r) return;
+  const {first, last} = r; let {lo, hi} = r;
   const rowH = (h - 6) / (hi - lo + 1), bh = Math.max(2.5, Math.min(rowH, 7));
   const y = m => 3 + (hi - clamp(m, lo, hi)) * rowH + (rowH - bh) / 2;
   // octave guide lines (written C)
