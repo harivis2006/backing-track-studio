@@ -71,19 +71,8 @@ async function startApp() {
       $("#installCmd").textContent = install;
       $("#uninstallCmd").textContent = `curl -fsSL ${location.origin}/uninstall.sh | bash`;
       $("#copyCmd").onclick = () => copyText(install, $("#copyCmd"), $("#installCmd"));
-      $("#ctaInstall").onclick = e => {
-        e.preventDefault();
-        $("#install").scrollIntoView({behavior: reducedMotion ? "auto" : "smooth", block: "center"});
-        setTimeout(() => { const c = $("#install .cmd"); c.classList.remove("flash"); void c.offsetWidth; c.classList.add("flash"); }, 500);
-      };
       const os = otherDevice();
-      if (os) {
-        $("#notMac").hidden = false;
-        $("#notMac").innerHTML = `<span>You're on ${os}. Backing Track Studio runs on a <b>Mac</b> — open this page on your Mac to install it.</span><button id="copyLink">Copy link</button>`;
-        $("#copyLink").onclick = () => copyText(location.origin, $("#copyLink"));
-        $("#ctaInstall").textContent = "See how to install";
-        $("#setupStatus").innerHTML = "Open this page on a Mac to install the helper.";
-      }
+      if (os) $("#setupStatus").innerHTML = `You're on ${os} — open this page on a Mac to install the helper.`;
       $("#setup").hidden = false; showLanding();
       while (status !== "ok") {
         if (status === "outdated") $("#setupStatus").innerHTML = `<span class="spin"></span> Your helper is out of date — run the command above again to update it.`;

@@ -635,26 +635,8 @@ dialog.tuner[data-tune=off]{--tc:var(--danger)}
 .tuner .tdrone select{width:64px;font-size:12.5px;padding:4px 6px}
 .tuner .tdrone input{flex:1;min-width:0}
 
-/* ---------- landing hero: rendered straight away (no waiting for scripts), with the install button up top */
-.lhero{max-width:1240px;margin:0 auto;padding:clamp(28px,7vh,80px) 8px clamp(26px,5vh,54px);text-align:center;display:flex;flex-direction:column;align-items:center;gap:18px;
-  animation:herofade .8s var(--ease) both}
-.lhero h2{margin:0;font-size:clamp(40px,7.4vw,92px);line-height:.98;letter-spacing:-.05em;font-weight:800;max-width:13ch;text-wrap:balance;padding-bottom:.1em;
-  background:linear-gradient(180deg,var(--ink) 30%,color-mix(in srgb,var(--ink) 62%,transparent));-webkit-background-clip:text;background-clip:text;color:transparent}
-.lhero p{margin:0;max-width:60ch;text-wrap:pretty;color:var(--mute);font-size:clamp(15px,1.6vw,18px);line-height:1.5}
-.lcta{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px}
-.lbtn{display:inline-flex;align-items:center;justify-content:center;height:48px;padding:0 24px;border-radius:99px;font-weight:600;font-size:15px;text-decoration:none;transition:transform .25s var(--ease),box-shadow .25s var(--ease),background .25s}
-.lbtn.primary{background:var(--acc);color:#fff;box-shadow:0 10px 26px rgba(10,132,255,.35)}
-.lbtn.primary:hover{transform:translateY(-2px) scale(1.03);box-shadow:0 16px 34px rgba(10,132,255,.45)}
-.lbtn.ghost{background:var(--tile);color:var(--ink);box-shadow:var(--sh)}
-.lbtn.ghost:hover{transform:translateY(-2px)}
-.lbtn:focus-visible{outline:3px solid color-mix(in srgb,var(--acc) 55%,transparent);outline-offset:3px}
-.lnote{background:color-mix(in srgb,#ff9f0a 14%,var(--tile));color:var(--ink);border-radius:18px;padding:12px 16px;font-size:14px;line-height:1.5;max-width:560px;display:flex;gap:12px;align-items:center;text-align:left}
-.lnote[hidden]{display:none}
-.lnote button{flex:none;font-size:13px;padding:7px 14px}
+/* ---------- landing: install command box */
 #setup{scroll-behavior:smooth}
-@keyframes herofade{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){ .lhero{animation:none} #setup{scroll-behavior:auto} }
+@media (prefers-reduced-motion:reduce){ #setup{scroll-behavior:auto} }
 .cmd code{white-space:nowrap;overflow-x:auto;word-break:normal;scrollbar-width:none}
 .cmd code::-webkit-scrollbar{display:none}
-.cmd.flash{animation:cmdflash 1.4s var(--ease)}
-@keyframes cmdflash{0%,100%{box-shadow:0 0 0 0 #0a84ff00}25%{box-shadow:0 0 0 6px #0a84ff66}}
