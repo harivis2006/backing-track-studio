@@ -45,23 +45,8 @@ async function helperStatus() {
     return newer(MIN_HELPER_VERSION, j.version) ? "outdated" : "ok";
   } catch { return "missing"; }
 }
-// the landing page's illustration: a few parts drawn as waveforms, with the sax removed
-function drawPreview() {
-  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  const lanes = [["winds", "Sax / Brass", 0.9, true], ["piano", "Piano", 0.55], ["bass", "Bass", 0.7], ["drums", "Drums", 0.95], ["guitar", "Guitar", 0.45]];
-  $("#pvLanes").innerHTML = lanes.map(([name, label, amp, off]) => {
-    const n = 90, bars = [];
-    for (let i = 0; i < n; i++) {
-      const env = name === "winds" ? (i % 30 < 18 ? 1 : 0.08) : 0.55 + 0.45 * Math.sin(i / 7 + amp * 5);
-      const v = Math.max(0.04, amp * env * (0.35 + 0.65 * rnd()));
-      bars.push(`<rect x="${i * 4}" y="${(1 - v) * 20}" width="2.4" height="${v * 40}" rx="1"/>`);
-    }
-    return `<div class="pvlane${off ? " off" : ""}"><span class="pvname"><i style="background:var(--${name})"></i>${label}</span>
-      <svg viewBox="0 0 360 40" preserveAspectRatio="none" style="fill:var(--${name})">${bars.join("")}</svg></div>`;
-  }).join("");
-}
 async function startApp() {
-  syncToggles();
+  syncToggles(); showWelcome();
   if (HOSTED) {
     $("#offlineHow").innerHTML = "Open <b>Backing Track Studio Helper</b> from Applications";
     let status = await helperStatus();
@@ -70,7 +55,7 @@ async function startApp() {
       $("#installCmd").textContent = install;
       $("#uninstallCmd").textContent = `curl -fsSL ${location.origin}/uninstall.sh | bash`;
       $("#copyCmd").onclick = async () => { await navigator.clipboard.writeText(install); $("#copyCmd").textContent = "Copied"; };
-      drawPreview(); $("#setup").hidden = false;
+      $("#setup").hidden = false; showLanding();
       while (status !== "ok") {
         if (status === "outdated") $("#setupStatus").innerHTML = `<span class="spin"></span> Your helper is out of date — run the command above again to update it.`;
         await sleep(2500);

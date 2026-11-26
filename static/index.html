@@ -19,15 +19,21 @@
 </aside>
 <main>
   <div id="empty">
-    <div class="eyebrow">A practice tool for players</div>
-    <h2>Take your part out of any song, <em>then play it yourself.</em></h2>
-    <ol>
-      <li>Paste a <b>YouTube or Spotify link</b>, or drop in a song or video.</li>
-      <li>It's split into <b>vocals, sax/brass, guitar, piano, bass, drums</b> and the rest.</li>
-      <li><b>Mute your part</b>, slow it down or change key, loop the hard bit.</li>
-      <li>Hit <b>●</b> to <b>record yourself</b> over it, then export.</li>
-    </ol>
-    <p class="hint">Everything runs on this Mac. A 5-minute song takes about 6–7 minutes to split. Press <kbd>?</kbd> for shortcuts.</p>
+    <div class="ebento">
+      <div class="bt H hero" data-r><div class="eyebrow">Backing Track Studio</div>
+        <h2>Take your part out of any song.</h2>
+        <p>Split a song into vocals, sax / brass, guitar, piano, bass and drums — then mute your part and play it yourself.</p>
+        <div class="brow tilt"><div class="bar"><b></b><b></b><b></b></div><div class="mock"><div class="mockhead"><span class="pvplay">▶</span><b>Your song</b><span>1:24</span></div><div class="pvlanes"></div></div></div></div>
+      <div class="bt P blue clickable" data-r id="eLink"><div class="big">Paste<br>a link</div><small>YouTube or Spotify<i>keeps the video</i></small></div>
+      <div class="bt D clickable" data-r id="eFile"><div class="orb"></div><small>Drop a song or video<i>or click to choose</i></small></div>
+      <div class="bt S scene" data-r><div class="big">50–120%</div><small>Slow it down<i>same pitch</i></small></div>
+      <div class="bt K gr clickable" data-r id="eCmd"><div class="big">⌘K</div><small>Do anything<i>jump to a song or command</i></small></div>
+      <div class="bt L" data-r><div class="beats"><i></i><i></i><i></i><i></i></div><small>Loops snap to the beat</small></div>
+      <div class="bt R dark" data-r><div class="bat"></div><small>Record yourself<i>press R</i></small></div>
+      <div class="bt X" data-r><div class="big">±12</div><small>Any key<i>written for your instrument</i></small></div>
+      <div class="bt C" data-r><div class="formats"><i>MP3</i><i>WAV</i><i>Video</i><i>Parts</i></div><small>Export</small></div>
+    </div>
+    <p class="hint ehint">Everything runs on this Mac. A 5-minute song takes about 6–7 minutes to split. Press <kbd>?</kbd> for shortcuts.</p>
   </div>
   <div id="studio">
     <header>
@@ -95,48 +101,62 @@
 <div id="toasts" aria-live="polite"></div>
 <div id="offline">Can't reach the Backing Track Studio helper on this Mac — it may have stopped. <span id="offlineHow">Open <b>Backing Track Studio Helper</b> from Applications</span>; this page reconnects by itself.</div>
 <div id="setup" hidden>
-  <div class="landing">
-    <nav class="landnav"><div class="brand"><div class="logo"></div><h1>Backing Track Studio</h1></div><span class="eyebrow">Free · runs on your Mac</span></nav>
-    <section class="hero">
-      <div class="herotext">
-        <div class="eyebrow">For sax players, singers, guitarists — anyone who plays along</div>
-        <h2>Take your part out of any song, <em>then play it yourself.</em></h2>
-        <p class="lede">Paste a YouTube or Spotify link. AI splits it into vocals, sax/brass, guitar, piano, bass and drums,
-           so you can mute your part, slow it down, change key, loop the hard bit and record yourself over the band.</p>
-      </div>
-      <figure class="preview" aria-hidden="true">
-        <div class="pvhead"><span class="pvplay">▶</span><span class="pvtitle">Your song</span><span class="pvclock">1:24</span></div>
-        <div id="pvLanes"></div>
-        <figcaption>The sax is removed; the band keeps playing.</figcaption>
-      </figure>
-    </section>
-    <section class="setupCard">
-      <div class="eyebrow">One-time setup</div>
-      <h3>Install the helper, <em>once.</em></h3>
-      <p>Songs are split by AI models that run <b>on your own Mac</b> — nothing is uploaded. A small helper app does that
-         work in the background. Install it once and this website will use it from then on.</p>
-      <ol>
-        <li>Open <b>Terminal</b> (in Applications → Utilities).</li>
-        <li>Paste this and press Return:
-          <div class="cmd"><code id="installCmd"></code><button id="copyCmd">Copy</button></div></li>
-        <li>Wait while it installs (about 5–10 minutes; it downloads ~1 GB). This page connects by itself when it's done.</li>
-      </ol>
-      <div id="setupStatus"><span class="spin"></span> Looking for the helper on this Mac…</div>
-      <div class="setupnotes">
-        <p class="hint">Needs a Mac (Apple Silicon recommended — Intel works but is slow), about 3 GB of free space and
-           <a href="https://brew.sh" target="_blank" rel="noopener">Homebrew</a> (the installer tells you if it's missing).</p>
-        <p class="hint"><b>Already installed?</b> Open <b>Backing Track Studio Helper</b> from your Applications folder.
-           If your browser asks whether this site may access <b>devices on your local network</b>, choose <b>Allow</b> —
-           that's how it talks to the helper. If you use Safari and it won't connect, try Chrome.</p>
-        <p class="hint">Uninstall any time: <code id="uninstallCmd"></code></p>
-      </div>
-    </section>
-    <section class="features">
-      <div><b>7 parts</b><span>Vocals, sax / brass, guitar, piano, bass, drums and everything else — mute, solo or turn down any of them.</span></div>
-      <div><b>Practice tools</b><span>50–120% speed without changing pitch, any key, loops that snap to the beat, count-in and metronome.</span></div>
-      <div><b>Record &amp; export</b><span>Record yourself over the track, then export MP3, WAV, the video, or every part for your DAW.</span></div>
-    </section>
+  <div class="prog" id="prog"></div>
+  <div class="pill" id="pill">1/3</div>
+  <nav class="landnav"><div class="brand"><div class="logo"></div><h1>Backing Track Studio</h1></div></nav>
+
+  <section data-i="1">
+  <div class="lbento">
+    <div class="bt A" data-r><div class="orb"></div><small>Runs on your Mac<i>nothing is uploaded</i></small></div>
+    <div class="bt B dark" data-r><div class="tok"><i style="--c:#ff375f"></i><i style="--c:#ff9f0a"></i><i style="--c:#30d158"></i><i style="--c:#7d7aff"></i><i style="--c:#64d2ff"></i><i style="--c:#bf5af2"></i><i style="--c:#c4a77d"></i><i style="--c:#0a84ff"></i></div><small><b data-count="7">7</b> parts</small></div>
+    <div class="bt C" data-r><div class="big">Any<br>key</div><small>±12 semitones</small></div>
+    <div class="bt D scene" data-r><div class="eqz"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><small>YouTube &amp; Spotify</small></div>
+    <div class="bt E" data-r><div class="wire"><i></i><i></i><i></i></div><small>Loops that snap to the beat</small></div>
+    <div class="bt F gr" data-r><div class="big">Remove the sax.<br>Keep the band.</div><small>One click, any part</small></div>
+
+    <div class="bt G" data-r><div class="beats"><i></i><i></i><i></i><i></i></div><div class="big">Count-in<br>&amp; click</div><small>Locked to the song's real beat</small></div>
+    <div class="bt M hero" data-r><div class="brow tilt"><div class="bar"><b></b><b></b><b></b></div><div class="mock"><div class="mockhead"><span class="pvplay">▶</span><b>Your song</b><span>1:24</span></div><div class="pvlanes"></div></div></div><div class="lab">Your band, minus you.</div></div>
+    <div class="bt R1" data-r><div class="chip"><div><b data-count="50">50</b>–<b data-count="120">120</b><br><span>% speed</span></div></div><small>Same pitch</small></div>
+    <div class="bt R2" data-r><div class="bat"></div><small>Record yourself</small></div>
+    <div class="bt H" data-r><div class="thin"></div><small>About 1 min per minute of music</small></div>
+    <div class="bt S" data-r><div class="big">MP3 · WAV · Video</div><small>or every part for your DAW</small></div>
+
+    <div class="bt V" data-r><div class="big">Mute · Solo · Volume</div><small>For every part</small></div>
+    <div class="bt T ti" data-r><div class="big">⌘K</div><small>Do anything fast</small></div>
+    <div class="bt L" data-r><div class="lm"><i></i><i></i></div><small>Light &amp; dark</small></div>
+    <div class="bt K blue" data-r><div class="big">Free</div><small>No account</small></div>
+    <div class="bt O" data-r><div class="code">curl … | bash</div><small>One-line install</small></div>
   </div>
+  </section>
+
+  <section data-i="2">
+  <div class="showcase" data-r>
+    <h2>Your band, minus you.</h2>
+    <p>Paste a link, wait a few minutes, and practise over the real recording — slowed down, in your key, looping the hard bit.</p>
+    <div class="rig" id="lap"><div class="lap tilt"><div class="mock"><div class="mockhead"><span class="pvplay">▶</span><b>Your song</b><span>1:24</span></div><div class="pvlanes"></div></div></div>
+      <div class="ph"><div class="eqz"><i></i><i></i><i></i><i></i><i></i></div></div></div>
+  </div>
+  </section>
+
+  <section data-i="3">
+  <div class="showcase install" data-r>
+    <h2>Install once. Play forever.</h2>
+    <p>The AI runs on <b>your own Mac</b>, so a small helper does the work in the background. Install it once and this website uses it from then on.</p>
+    <ol>
+      <li>Open <b>Terminal</b><br>(Applications → Utilities).</li>
+      <li>Paste this and press <b>Return</b>:<div class="cmd"><code id="installCmd"></code><button id="copyCmd">Copy</button></div></li>
+      <li><b>Wait 5–10 minutes</b> while it downloads (~1 GB). This page connects by itself.</li>
+    </ol>
+    <div id="setupStatus"><span class="spin"></span> Looking for the helper on this Mac…</div>
+    <div class="setupnotes">
+      <p class="hint">Needs a Mac (Apple Silicon recommended — Intel works but is slow), about 3 GB of free space and
+         <a href="https://brew.sh" target="_blank" rel="noopener">Homebrew</a> (the installer tells you if it's missing).</p>
+      <p class="hint"><b>Already installed?</b> Open <b>Backing Track Studio Helper</b> from Applications. If your browser asks whether this site
+         may access <b>devices on your local network</b>, choose <b>Allow</b>. If Safari won't connect, try Chrome.</p>
+      <p class="hint">Uninstall any time: <code id="uninstallCmd"></code></p>
+    </div>
+  </div>
+  </section>
 </div>
 <dialog id="palette" aria-label="Command palette">
   <div class="palsearch"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
@@ -214,6 +234,7 @@
 <script src="/static/js/export.js"></script>
 <script src="/static/js/tools.js"></script>
 <script src="/static/js/palette.js"></script>
+<script src="/static/js/bento.js"></script>
 <script src="/static/js/app.js"></script>
 </body>
 </html>

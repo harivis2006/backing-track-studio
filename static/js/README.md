@@ -19,6 +19,7 @@ only depends on files above it).
 | `export.js` | Export dialog: WAV / MP3 / video / parts, optional count-in |
 | `tools.js` | Your instrument (auto-mute, transposition), mic meters, A/B, loop counter, notifications |
 | `palette.js` | Command palette (⌘K): jump to a song or run any command |
+| `bento.js` | Welcome screen & website landing page: tile animations, mockup tilt, scroll progress |
 | `app.js` | Key display, zoom buttons, rename / search, quit — then starts the app |
 
 **Time:** everything the user sees is in *song time* (seconds of the original recording). Practice versions

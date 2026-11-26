@@ -7,7 +7,7 @@ function closeStudio() {
   if (playing) pause();
   loadToken++; current = null; teardown();
   vid.removeAttribute("src"); vid.load();
-  $("#studio").style.display = "none"; $("#empty").style.display = "";
+  $("#studio").style.display = "none"; $("#empty").style.display = ""; showWelcome();
   renderLib();
 }
 function teardown() {
@@ -149,7 +149,7 @@ function setLoading(frac, on) {
 }
 // ---- video: a panel you can resize by dragging its bottom edge, go fullscreen with, or pop out (picture-in-picture)
 const vwrap = $("#videoWrap");
-const VIDEO_MIN = 120, videoMax = () => Math.max(VIDEO_MIN, Math.round(Math.min(innerHeight * 0.7, innerHeight - 340)));  // always leave room for a few parts
+const VIDEO_MIN = 120, videoMax = () => Math.max(VIDEO_MIN, Math.round(Math.min(innerHeight * 0.55, innerHeight - 470)));  // always leave room for a few parts
 function setVideoHeight(h, save = true) {
   h = clamp(Math.round(h), VIDEO_MIN, videoMax());
   vwrap.style.height = h + "px";
