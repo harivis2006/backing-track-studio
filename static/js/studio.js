@@ -147,27 +147,88 @@ function setLoading(frac, on) {
   $("#play").disabled = $("#rec").disabled = on && !live().length;
   $("#exportBtn").disabled = on;
 }
+// ---- video: a panel you can resize by dragging its bottom edge, go fullscreen with, or pop out (picture-in-picture)
+const vwrap = $("#videoWrap");
+const VIDEO_MIN = 120, videoMax = () => Math.max(VIDEO_MIN, Math.round(Math.min(innerHeight * 0.7, innerHeight - 340)));  // always leave room for a few parts
+function setVideoHeight(h, save = true) {
+  h = clamp(Math.round(h), VIDEO_MIN, videoMax());
+  vwrap.style.height = h + "px";
+  if (save) { prefs.videoH = h; savePrefs(); }
+  requestAnimationFrame(drawAll);
+}
+function showVideo(show) {
+  vwrap.classList.toggle("show", show); $("#videoToggle").classList.toggle("on", show);
+  if (!show && document.fullscreenElement === vwrap) document.exitFullscreen();
+  if (!show && vwrap.classList.contains("pseudo")) fillWindow(false);
+  saveState(); requestAnimationFrame(drawAll);
+}
 function setupVideo(job, show) {
   $("#videoToggle").hidden = !job.video;
-  $("#videoWrap").classList.toggle("show", !!job.video && show);
+  vwrap.classList.toggle("show", !!job.video && show);
   $("#videoToggle").classList.toggle("on", !!job.video && show);
-  vid.classList.toggle("large", prefs.videoLarge === true);
+  setVideoHeight(prefs.videoH || 240, false);
+  $("#vidPip").hidden = !document.pictureInPictureEnabled;
   if (job.video) { vid.src = apiUrl(`/api/jobs/${job.id}/video`); vid.addEventListener("loadedmetadata", () => { vid.currentTime = offset; }, {once:true}); }
   else { vid.removeAttribute("src"); vid.load(); }
 }
 vid.addEventListener("error", () => {
   if (!current?.video || !vid.getAttribute("src")) return;
-  $("#videoWrap").classList.remove("show"); $("#videoToggle").hidden = true;
+  vwrap.classList.remove("show"); $("#videoToggle").hidden = true;
   toast("This browser can't play the video for this track; the audio still works.", {type:"err"});
 });
-$("#videoToggle").onclick = () => {
-  const shown = $("#videoWrap").classList.contains("show"), large = vid.classList.contains("large");
-  const show = !shown || !large;              // hidden -> small -> large -> hidden
-  prefs.videoLarge = shown && !large; savePrefs();
-  vid.classList.toggle("large", prefs.videoLarge);
-  $("#videoWrap").classList.toggle("show", show); $("#videoToggle").classList.toggle("on", show);
-  saveState(); requestAnimationFrame(drawAll);
+$("#videoToggle").onclick = () => showVideo(!vwrap.classList.contains("show"));
+$("#vidHide").onclick = () => showVideo(false);
+// Real fullscreen where the browser allows it; otherwise (or if it doesn't answer) the video fills the window.
+function setFsLook(on) {
+  vwrap.classList.toggle("fs", on);
+  $("#vidFull").title = on ? "Exit fullscreen (F or Esc)" : "Fullscreen (F)";
+  requestAnimationFrame(drawAll);
+}
+function fillWindow(on) { vwrap.classList.toggle("pseudo", on); setFsLook(on); }
+function toggleFullscreen() {
+  if (!current?.video) return;
+  if (document.fullscreenElement) { document.exitFullscreen(); return; }
+  if (vwrap.classList.contains("pseudo")) { fillWindow(false); return; }
+  if (!vwrap.classList.contains("show")) showVideo(true);
+  if (!document.fullscreenEnabled || !vwrap.requestFullscreen) { fillWindow(true); return; }
+  let settled = false;
+  vwrap.requestFullscreen().then(() => { settled = true; }, () => { settled = true; fillWindow(true); });
+  setTimeout(() => { if (!settled && !document.fullscreenElement) fillWindow(true); }, 700);
+}
+$("#vidFull").onclick = toggleFullscreen;
+vid.addEventListener("dblclick", toggleFullscreen);
+document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement) vwrap.classList.remove("pseudo");   // leaving real fullscreen leaves both modes
+  setFsLook(document.fullscreenElement === vwrap || vwrap.classList.contains("pseudo"));
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape" && vwrap.classList.contains("pseudo")) { e.preventDefault(); fillWindow(false); } });
+$("#vidPip").onclick = async () => {
+  try { if (document.pictureInPictureElement) await document.exitPictureInPicture(); else await vid.requestPictureInPicture(); }
+  catch { toast("Picture-in-picture isn't available for this video.", {type:"err"}); }
 };
+// in fullscreen the controls show while the mouse moves, then fade away
+let awakeTimer;
+vwrap.addEventListener("pointermove", () => {
+  if (!vwrap.classList.contains("fs")) return;
+  vwrap.classList.add("awake"); clearTimeout(awakeTimer);
+  awakeTimer = setTimeout(() => vwrap.classList.remove("awake"), 2200);
+});
+// the fullscreen bar has its own play button and clock
+$("#fsPlay").onclick = () => toggle();
+// drag the grip to resize; double-click it to reset
+$("#vidGrip").addEventListener("pointerdown", e => {
+  e.preventDefault();
+  const grip = e.currentTarget, y0 = e.clientY, h0 = vwrap.getBoundingClientRect().height;
+  grip.setPointerCapture(e.pointerId); vwrap.classList.add("resizing");
+  const move = ev => setVideoHeight(h0 + ev.clientY - y0, false);
+  const up = () => { grip.removeEventListener("pointermove", move); vwrap.classList.remove("resizing"); setVideoHeight(vwrap.getBoundingClientRect().height); };
+  grip.addEventListener("pointermove", move); grip.addEventListener("pointerup", up, {once:true}); grip.addEventListener("pointercancel", up, {once:true});
+});
+$("#vidGrip").addEventListener("dblclick", () => setVideoHeight(240));
+$("#vidGrip").addEventListener("keydown", e => {
+  if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); setVideoHeight(vwrap.getBoundingClientRect().height + (e.key === "ArrowUp" ? -20 : 20)); }
+});
+addEventListener("resize", () => { if (vwrap.classList.contains("show")) setVideoHeight(prefs.videoH || 240, false); });
 for (const [label, list] of PRESETS) {
   const b = document.createElement("button"); b.textContent = label; b.dataset.stems = list.slice().sort().join();
   b.title = `Mute ${label}`;

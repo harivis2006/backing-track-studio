@@ -18,6 +18,7 @@ only depends on files above it).
 | `keyboard.js` | Keyboard shortcuts |
 | `export.js` | Export dialog: WAV / MP3 / video / parts, optional count-in |
 | `tools.js` | Your instrument (auto-mute, transposition), mic meters, A/B, loop counter, notifications |
+| `palette.js` | Command palette (⌘K): jump to a song or run any command |
 | `app.js` | Key display, zoom buttons, rename / search, quit — then starts the app |
 
 **Time:** everything the user sees is in *song time* (seconds of the original recording). Practice versions

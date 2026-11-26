@@ -31,6 +31,7 @@ document.addEventListener("keydown", e => {
   else if (k === "-" || k === "_") stepKey(-1);
   else if (k === "=" || k === "+") stepKey(1);
   else if ((k === "v" || k === "V") && current.video && !$("#videoToggle").hidden) $("#videoToggle").click();
+  else if ((k === "f" || k === "F") && current.video && !$("#videoToggle").hidden) toggleFullscreen();
   else if (k === "m" || k === "M") addMarker();
   else if (k === "a" || k === "A") setAB(!abSaved);
   else if (k === "e" || k === "E") { e.preventDefault(); openExport(); }

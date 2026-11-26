@@ -281,7 +281,9 @@ function updateTime() {
   if (!current) return;
   const t = curPos();
   $("#tNow").textContent = fmt(t); $("#tDur").textContent = fmt(duration);
-  $("#barbeat").textContent = barBeatAt(t);
+  const bb = barBeatAt(t);
+  $("#barbeat").textContent = bb;
+  $("#fsTime").textContent = `${fmt(t)} / ${fmt(duration)}${bb ? " · " + bb : ""}`;
 }
 (function tick() { if (playing) { drawAll(); updateTime(); syncVideo(); updateLoopPass(); } requestAnimationFrame(tick); })();
 setInterval(() => { if (playing) { scheduleAhead(); syncVideo(); } }, 40);  // also runs when the tab is hidden

@@ -10,6 +10,7 @@
 <aside>
   <div class="brand"><div class="logo"></div><h1>Backing Track Studio</h1></div>
   <div class="sub">Split any song into instruments. Mute what you'll play.</div>
+  <button id="palBtn" title="Jump to a song or run any command (⌘K)"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg><span>Jump to…</span><kbd>⌘K</kbd></button>
   <form id="linkForm"><input id="linkInput" placeholder="YouTube or Spotify link…" autocomplete="off" aria-label="YouTube or Spotify link"><button>Add</button></form>
   <div id="drop" role="button" tabindex="0"><b>Drop a song or video</b> or click to choose</div>
   <input id="file" type="file" accept="audio/*,video/*,.m4a,.flac,.mov,.mkv,.webm" multiple hidden>
@@ -38,11 +39,20 @@
       <button class="iconbtn" id="libToggle" title="Show / hide your tracks">☰</button>
       <div class="titles"><h2 id="title"></h2><div id="source"></div></div>
       <div id="time"><b id="tNow">0:00</b> / <span id="tDur">0:00</span><span id="barbeat"></span></div>
-      <button class="iconbtn" id="videoToggle" title="Video: hidden → small → large (V)">Video</button>
+      <button class="iconbtn" id="videoToggle" title="Show / hide the video (V)">Video</button>
       <button class="iconbtn" id="settingsBtn" title="Settings">⚙︎</button>
       <button class="iconbtn" id="helpBtn" title="Keyboard shortcuts (?)">?</button>
     </header>
-    <div id="videoWrap"><video id="vid" muted playsinline preload="auto"></video></div>
+    <div id="videoWrap">
+      <video id="vid" muted playsinline preload="auto"></video>
+      <div class="vidtools">
+        <button id="vidPip" title="Pop out the video (picture-in-picture)" aria-label="Picture-in-picture"><svg viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="11" rx="1"/><rect x="8" y="8" width="5" height="4" fill="currentColor" stroke="none"/></svg></button>
+        <button id="vidFull" title="Fullscreen (F)" aria-label="Fullscreen"><svg viewBox="0 0 16 16"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg></button>
+        <button id="vidHide" title="Hide the video (V)" aria-label="Hide video"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+      </div>
+      <div class="fsbar"><button id="fsPlay" aria-label="Play / pause">▶</button><span id="fsTime">0:00</span><span class="fshint">Space plays · F or Esc exits fullscreen</span></div>
+      <div id="vidGrip" role="separator" aria-orientation="horizontal" aria-label="Resize video" tabindex="0" title="Drag to resize the video · double-click to reset"></div>
+    </div>
     <div class="toolbar">
       <div class="group presets" id="presets"><span class="lbl">Remove</span></div>
       <div class="sep"></div>
@@ -85,27 +95,55 @@
 <div id="toasts" aria-live="polite"></div>
 <div id="offline">Can't reach the Backing Track Studio helper on this Mac — it may have stopped. <span id="offlineHow">Open <b>Backing Track Studio Helper</b> from Applications</span>; this page reconnects by itself.</div>
 <div id="setup" hidden>
-  <div class="setupCard">
-    <div class="brand"><div class="logo"></div><h1>Backing Track Studio</h1></div>
-    <div class="eyebrow">One-time setup</div>
-    <h2>Install the helper, <em>once.</em></h2>
-    <p>Songs are split by AI models that run <b>on your own Mac</b> — nothing is uploaded. A small helper app does that
-       work in the background. Install it once and this website will use it from then on.</p>
-    <ol>
-      <li>Open <b>Terminal</b> (in Applications → Utilities).</li>
-      <li>Paste this and press Return:
-        <div class="cmd"><code id="installCmd"></code><button id="copyCmd">Copy</button></div></li>
-      <li>Wait while it installs (about 5–10 minutes; it downloads ~1 GB). This page connects by itself when it's done.</li>
-    </ol>
-    <p class="hint">Needs a Mac (Apple Silicon recommended — Intel works but is slow), about 3 GB of free space and
-       <a href="https://brew.sh" target="_blank" rel="noopener">Homebrew</a> (the installer tells you if it's missing).</p>
-    <p class="hint"><b>Already installed?</b> Open <b>Backing Track Studio Helper</b> from your Applications folder.
-       If your browser asks whether this site may access <b>devices on your local network</b>, choose <b>Allow</b> —
-       that's how it talks to the helper. If you use Safari and it won't connect, try Chrome.</p>
-    <div id="setupStatus"><span class="spin"></span> Looking for the helper on this Mac…</div>
-    <p class="hint" style="margin-top:18px">Uninstall any time: <code id="uninstallCmd"></code></p>
+  <div class="landing">
+    <nav class="landnav"><div class="brand"><div class="logo"></div><h1>Backing Track Studio</h1></div><span class="eyebrow">Free · runs on your Mac</span></nav>
+    <section class="hero">
+      <div class="herotext">
+        <div class="eyebrow">For sax players, singers, guitarists — anyone who plays along</div>
+        <h2>Take your part out of any song, <em>then play it yourself.</em></h2>
+        <p class="lede">Paste a YouTube or Spotify link. AI splits it into vocals, sax/brass, guitar, piano, bass and drums,
+           so you can mute your part, slow it down, change key, loop the hard bit and record yourself over the band.</p>
+      </div>
+      <figure class="preview" aria-hidden="true">
+        <div class="pvhead"><span class="pvplay">▶</span><span class="pvtitle">Your song</span><span class="pvclock">1:24</span></div>
+        <div id="pvLanes"></div>
+        <figcaption>The sax is removed; the band keeps playing.</figcaption>
+      </figure>
+    </section>
+    <section class="setupCard">
+      <div class="eyebrow">One-time setup</div>
+      <h3>Install the helper, <em>once.</em></h3>
+      <p>Songs are split by AI models that run <b>on your own Mac</b> — nothing is uploaded. A small helper app does that
+         work in the background. Install it once and this website will use it from then on.</p>
+      <ol>
+        <li>Open <b>Terminal</b> (in Applications → Utilities).</li>
+        <li>Paste this and press Return:
+          <div class="cmd"><code id="installCmd"></code><button id="copyCmd">Copy</button></div></li>
+        <li>Wait while it installs (about 5–10 minutes; it downloads ~1 GB). This page connects by itself when it's done.</li>
+      </ol>
+      <div id="setupStatus"><span class="spin"></span> Looking for the helper on this Mac…</div>
+      <div class="setupnotes">
+        <p class="hint">Needs a Mac (Apple Silicon recommended — Intel works but is slow), about 3 GB of free space and
+           <a href="https://brew.sh" target="_blank" rel="noopener">Homebrew</a> (the installer tells you if it's missing).</p>
+        <p class="hint"><b>Already installed?</b> Open <b>Backing Track Studio Helper</b> from your Applications folder.
+           If your browser asks whether this site may access <b>devices on your local network</b>, choose <b>Allow</b> —
+           that's how it talks to the helper. If you use Safari and it won't connect, try Chrome.</p>
+        <p class="hint">Uninstall any time: <code id="uninstallCmd"></code></p>
+      </div>
+    </section>
+    <section class="features">
+      <div><b>7 parts</b><span>Vocals, sax / brass, guitar, piano, bass, drums and everything else — mute, solo or turn down any of them.</span></div>
+      <div><b>Practice tools</b><span>50–120% speed without changing pitch, any key, loops that snap to the beat, count-in and metronome.</span></div>
+      <div><b>Record &amp; export</b><span>Record yourself over the track, then export MP3, WAV, the video, or every part for your DAW.</span></div>
+    </section>
   </div>
 </div>
+<dialog id="palette" aria-label="Command palette">
+  <div class="palsearch"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+    <input id="palInput" placeholder="Jump to a song or type a command…" autocomplete="off" spellcheck="false" aria-label="Command"><kbd>esc</kbd></div>
+  <div id="palList" role="listbox"></div>
+  <div class="palfoot"><span><kbd>↑</kbd> <kbd>↓</kbd> move</span><span><kbd>↵</kbd> run</span><span><kbd>⌘K</kbd> open / close</span></div>
+</dialog>
 <dialog id="exportDlg">
   <h3>Export</h3>
   <div class="choices" id="fmtChoices">
@@ -126,6 +164,7 @@
 <dialog id="help">
   <h3>Keyboard shortcuts</h3>
   <table>
+    <tr><td><kbd>⌘K</kbd></td><td>Jump to a song or run any command</td></tr>
     <tr><td><kbd>Space</kbd></td><td>Play / pause</td></tr>
     <tr><td><kbd>R</kbd></td><td>Start / stop recording yourself</td></tr>
     <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Back / forward one bar (or 5 s if no beat was found); with <kbd>Shift</kbd>: 4 bars</td></tr>
@@ -135,7 +174,7 @@
     <tr><td><kbd>C</kbd> · <kbd>K</kbd></td><td>Count-in on / off · metronome click on / off</td></tr>
     <tr><td><kbd>[</kbd> <kbd>]</kbd></td><td>Slower / faster (5% steps)</td></tr>
     <tr><td><kbd>-</kbd> <kbd>=</kbd></td><td>Key down / up a semitone</td></tr>
-    <tr><td><kbd>V</kbd></td><td>Video: hidden → small → large</td></tr>
+    <tr><td><kbd>V</kbd> · <kbd>F</kbd></td><td>Show / hide the video · video fullscreen (drag the bar under the video to resize it)</td></tr>
     <tr><td><kbd>A</kbd></td><td>A/B: compare with the original song</td></tr>
     <tr><td><kbd>E</kbd></td><td>Export…</td></tr>
     <tr><td><kbd>M</kbd> · <kbd>,</kbd> <kbd>.</kbd></td><td>Add a marker · jump to previous / next marker</td></tr>
@@ -174,6 +213,7 @@
 <script src="/static/js/keyboard.js"></script>
 <script src="/static/js/export.js"></script>
 <script src="/static/js/tools.js"></script>
+<script src="/static/js/palette.js"></script>
 <script src="/static/js/app.js"></script>
 </body>
 </html>

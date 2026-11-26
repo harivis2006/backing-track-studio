@@ -107,8 +107,7 @@ function seek(t) {
   drawAll(); updateTime();
 }
 function updatePlayBtn() {
-  $("#play").textContent = playing ? "❚❚" : "▶";
-  $("#play").setAttribute("aria-label", playing ? "Pause" : "Play");
+  for (const b of [$("#play"), $("#fsPlay")]) { b.textContent = playing ? "❚❚" : "▶"; b.setAttribute("aria-label", playing ? "Pause" : "Play"); }
 }
 
 // --- scheduler: takes and metronome clicks are placed pass-by-pass so they stay aligned through loops
