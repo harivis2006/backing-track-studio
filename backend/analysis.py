@@ -10,6 +10,7 @@ Older songs are brought up to date automatically (see ensure_analysis / BEATS_VE
 
 import json
 import threading
+import time
 import traceback
 from pathlib import Path
 
@@ -25,15 +26,38 @@ _beat_lock = threading.Lock()
 _song_locks: dict[str, threading.Lock] = {}
 
 
-def _read_parts(jdir: Path, names, mono=False):
+ANALYSIS_SR = 22050  # beats, key and chords all work at (or below) this rate
+_parts_cache: dict[str, dict] = {}  # song folder -> {part: mono float32 at ANALYSIS_SR}, only while analysing
+
+
+def _mono22(x, sr):
+    import soxr
+
+    return soxr.resample(x.mean(axis=1) if x.ndim == 2 else x, sr, ANALYSIS_SR).astype("float32")
+
+
+def _load_parts(jdir: Path) -> dict:
+    """Every part as mono at ANALYSIS_SR, decoded once (in parallel) and shared by beats, key and chords."""
+    from concurrent.futures import ThreadPoolExecutor
+
     import soundfile as sf
 
-    parts = []
-    for name in names:
-        p = jdir / "stems" / f"{name}.flac"
-        if p.exists():
-            x = sf.read(p, dtype="float32")[0]
-            parts.append(x.mean(axis=1) if mono else x)
+    key = str(jdir)
+    if key not in _parts_cache:
+        def one(name):
+            p = jdir / "stems" / f"{name}.flac"
+            if not p.exists():
+                return name, None
+            x, sr = sf.read(p, dtype="float32")
+            return name, _mono22(x, sr)
+        with ThreadPoolExecutor(4) as pool:
+            _parts_cache[key] = {n: x for n, x in pool.map(one, STEMS) if x is not None}
+    return _parts_cache[key]
+
+
+def _read_parts(jdir: Path, names, mono=True):
+    """The given parts mixed together: mono at ANALYSIS_SR."""
+    parts = [x for n, x in _load_parts(jdir).items() if n in names]
     if not parts:
         return None
     n = min(len(x) for x in parts)  # parts can differ in length by a few samples
@@ -42,29 +66,70 @@ def _read_parts(jdir: Path, names, mono=False):
 
 # ---------------------------------------------------------------- waveforms
 def compute_peaks(jdir: Path) -> dict:
-    """Build peaks.json from scratch: waveforms + loudness per part, then beats and key."""
+    """Build peaks.json from scratch: waveforms + loudness per part, then beats, chords and key."""
     import numpy as np
     import soundfile as sf
 
-    out = {"columns": PEAK_COLUMNS, "stems": {}}
-    for name in STEMS:
+    from concurrent.futures import ThreadPoolExecutor
+
+    def one(name):
         p = jdir / "stems" / f"{name}.flac"
         if not p.exists():
-            continue
+            return name, None, None
         x, sr = sf.read(p, dtype="float32")
         loudest = np.abs(x).max(axis=1) if x.ndim == 2 else np.abs(x)
         n = len(loudest)
-        out["duration"] = n / sr
         edges = np.linspace(0, n, PEAK_COLUMNS + 1).astype(int)
         peaks = np.maximum.reduceat(loudest, edges[:-1]) if n >= PEAK_COLUMNS else np.zeros(PEAK_COLUMNS)
         db = 20 * np.log10(float(np.sqrt(np.mean(x.astype(np.float64) ** 2))) + 1e-12)
-        out["stems"][name] = {"peaks": [int(v) for v in np.clip(peaks * 255, 0, 255)],
-                              "db": round(db, 1), "silent": bool(db < SILENT_DB)}
-    for field, analyse in (("beats", analyze_beats), ("key", analyze_key)):
-        out[field] = _safely(analyse, jdir)
-    out["chords"] = _safely(lambda d: analyze_chords(d, out.get("beats")), jdir)
+        info = {"peaks": [int(v) for v in np.clip(peaks * 255, 0, 255)], "db": round(db, 1), "silent": bool(db < SILENT_DB),
+                "_seconds": n / sr}
+        return name, info, _mono22(x, sr)
+
+    out = {"columns": PEAK_COLUMNS, "stems": {}}
+    with ThreadPoolExecutor(4) as pool:
+        results = list(pool.map(one, STEMS))
+    _parts_cache[str(jdir)] = {n: m for n, _, m in results if m is not None}
+    try:
+        for name, info, _ in results:
+            if info:
+                out["duration"] = info.pop("_seconds")
+                out["stems"][name] = info
+        analyse_rest(jdir, out, ("beats", "key", "chords"))
+    finally:
+        _parts_cache.pop(str(jdir), None)
     atomic_write_json(jdir / "peaks.json", out)
     return out
+
+
+def analyse_rest(jdir: Path, data: dict, fields) -> None:
+    """Beats, then chords (lined up with the beats), then the key (from the chord model's pitch picture)."""
+    if "beats" in fields:
+        data["beats"] = _safely(analyze_beats, jdir) or _failed("beats")
+    profile = None
+    if "chords" in fields:
+        result = _safely(lambda d: analyze_chords(d, data.get("beats")), jdir)
+        profile = (result or {}).pop("profile", None)
+        data["chords"] = result or _failed("chords")
+    if "key" in fields:
+        data["key"] = _safely(lambda d: analyze_key(d, profile), jdir)
+
+
+RETRY_FAILED_AFTER = 3600  # seconds: a failed analysis (e.g. offline when the chord model was needed) is retried later
+
+
+def _failed(field: str) -> dict | None:
+    """What to store when an analysis failed, so it isn't re-run (slowly) every time the song is opened."""
+    version = {"beats": BEATS_VERSION, "chords": CHORDS_VERSION}.get(field)
+    if version is None:
+        return None
+    return {"v": version, "failed": time.time(), **({"times": []} if field == "beats" else {"list": []})}
+
+
+def _outdated(result: dict | None, version: int) -> bool:
+    if not result or result.get("v") != version:
+        return True
+    return bool(result.get("failed")) and time.time() - result["failed"] > RETRY_FAILED_AFTER
 
 
 def _safely(fn, jdir):
@@ -88,6 +153,11 @@ def beat_tracker():
     return _beat_model
 
 
+def unload_models() -> None:
+    global _beat_model
+    _beat_model = None
+
+
 def analyze_beats(jdir: Path) -> dict:
     import numpy as np
 
@@ -95,7 +165,7 @@ def analyze_beats(jdir: Path) -> dict:
     if mix is None:
         return {"v": BEATS_VERSION, "times": []}
     with _beat_lock:
-        beats, downbeats = beat_tracker()(mix, 44100)
+        beats, downbeats = beat_tracker()(mix, ANALYSIS_SR)
     cleaned = clean_beats(beats, downbeats)
     if cleaned is None:  # no steady beat (e.g. free time) — remembered, so we don't re-analyse every open
         return {"v": BEATS_VERSION, "times": []}
@@ -188,18 +258,19 @@ def clean_beats(beats, downbeats):
 
 
 # ---------------------------------------------------------------- key
-def analyze_key(jdir: Path) -> dict | None:
+def analyze_key(jdir: Path, profile=None) -> dict | None:
     """Overall key via Krumhansl-Schmuckler profiles on the pitched parts. A major key and its relative
     minor share the same notes, so we return the major tonic plus which of the two fitted better."""
-    import librosa
     import numpy as np
-    from scipy.signal import resample_poly
 
-    mix = _read_parts(jdir, ("bass", "piano", "guitar", "other", "winds", "vocals"), mono=True)
-    if mix is None:
-        return None
-    y = resample_poly(mix, 1, 4).astype(np.float32)
-    chroma = librosa.feature.chroma_cqt(y=y, sr=11025, hop_length=1024, bins_per_octave=36).sum(axis=1)
+    if profile is None:  # normally passed in by the chord analysis (same pitch analysis, so no extra work)
+        from .chords import harmony_mix, pitch_profile
+
+        mix = harmony_mix(jdir)
+        if mix is None:
+            return None
+        profile = pitch_profile(mix, ANALYSIS_SR)
+    chroma = np.asarray(profile, dtype=float)
     major = np.array([6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88])
     minor = np.array([6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17])
     fits = [(float(np.corrcoef(np.roll(profile, r), chroma)[0, 1]), r, mode)
@@ -216,13 +287,14 @@ def ensure_analysis(job_id: str) -> dict:
         path = jdir / "peaks.json"
         data = json.loads(path.read_text()) if path.exists() else compute_peaks(jdir)
         stale = [(field, fn) for field, fn in (("beats", analyze_beats), ("key", analyze_key))
-                 if field not in data or (field == "beats" and (data.get("beats") or {}).get("v") != BEATS_VERSION)]
-        chords_stale = bool(stale) and any(f == "beats" for f, _ in stale) or (data.get("chords") or {}).get("v") != CHORDS_VERSION
+                 if field not in data or (field == "beats" and _outdated(data.get("beats"), BEATS_VERSION))]
+        chords_stale = any(f == "beats" for f, _ in stale) or _outdated(data.get("chords"), CHORDS_VERSION)
         if stale or chords_stale:
-            for field, fn in stale:
-                data[field] = _safely(fn, jdir)
-            if chords_stale:  # chords are lined up with the beats, so they're redone when the beats are
-                data["chords"] = _safely(lambda d: analyze_chords(d, data.get("beats")), jdir)
+            fields = {f for f, _ in stale} | ({"chords"} if chords_stale else set())  # chords follow the beats
+            try:
+                analyse_rest(jdir, data, fields)
+            finally:
+                _parts_cache.pop(str(jdir), None)
             atomic_write_json(path, data)
         job = jobs.jobs.get(job_id)
         if job and not job.get("duration") and data.get("duration"):

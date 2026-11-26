@@ -176,7 +176,7 @@ function syncVideo() {
   if (!current?.video || !playing || vid.readyState < 2) return;
   if (ctx.currentTime < startedAt) return;  // counting in
   if (vid.paused) vid.play().catch(() => {});
-  const target = curPos(), drift = vid.currentTime - target, wrapped = target < lastSyncPos;
+  const target = Math.max(0, curPos() - (ctx.outputLatency || 0) * rate), drift = vid.currentTime - target, wrapped = target < lastSyncPos;
   lastSyncPos = target;
   if (wrapped || Math.abs(drift) > 0.25) { vid.currentTime = target + 0.07 * rate; vid.playbackRate = rate; }
   else vid.playbackRate = rate * (1 - clamp(drift, -0.05, 0.05));

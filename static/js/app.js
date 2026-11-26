@@ -18,14 +18,7 @@ $("#zoomOut").onclick = () => zoomBy(2);
 $("#zoomFit").onclick = () => setView(0, duration);
 $("#addMarker").onclick = () => addMarker();
 
-$("#title").ondblclick = async () => {
-  if (!current) return;
-  const t = prompt("Rename this track", current.title); if (!t || t.trim() === current.title) return;
-  try {
-    const j = await (await api(`/api/jobs/${current.id}`, {method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({title:t})})).json();
-    current.title = j.title; $("#title").textContent = j.title; document.title = j.title + " · Backing Track Studio"; refresh();
-  } catch (e) { toast(e.message, {type:"err"}); }
-};
+$("#title").ondblclick = () => { if (current && !$("#title input")) renameInline($("#title"), current); };
 $("#title").title = "Double-click to rename";
 $("#libSearch").oninput = () => renderLib();
 $("#instSel").onchange = e => {

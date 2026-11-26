@@ -6,8 +6,8 @@ async function renderMix({section = loopOn(), countIn = false, withTakes = true}
   const sr = live()[0].buf.sampleRate, ba = a / rate, bb = b / rate;
   // Optional count-in: clicks on the song's own beat grid, leading into the first bar line of the export.
   let lead = 0, clicks = [];
-  if (countIn && beats) {
-    const i0 = Math.max(0, beats.times.findIndex(t => t >= a - 0.02));
+  if (countIn && beats && beats.times.findIndex(t => t >= a - 0.02) >= 0) {
+    const i0 = beats.times.findIndex(t => t >= a - 0.02);
     let d = i0; while (d < beats.times.length && !beats.isDown[d]) d++;
     if (d >= beats.times.length) d = i0;
     const g = localBeat(d), n = countBeats(), per = n / prefs.countBars;
@@ -90,15 +90,16 @@ $("#exportGo").onclick = () => {
     return;
   }
   const opts = {section: $("#exLoop").checked && loopA !== null, countIn: $("#exCount").checked && !$("#exCount").disabled, withTakes: $("#exTakes").checked};
+  const job = current;  // keep exporting this song even if another one is opened meanwhile
   busy($("#exportBtn"), exportFmt === "mp4" ? "Making video…" : "Rendering…", async () => {
     const r = await renderMix(opts);
     if (exportFmt === "wav") { download(r.wav, r.name + ".wav"); }
     else if (exportFmt === "mp3") {
-      const res = await api(`/api/jobs/${current.id}/export-audio?${new URLSearchParams({format: "mp3", name: r.name})}`, {method:"POST", body:r.wav});
+      const res = await api(`/api/jobs/${job.id}/export-audio?${new URLSearchParams({format: "mp3", name: r.name})}`, {method:"POST", body:r.wav});
       download(await res.blob(), r.name + ".mp3");
     } else {
       const q = new URLSearchParams({name: r.name, speed: rate, ...(r.section ? {start: r.a, end: r.b} : {})});
-      const res = await api(`/api/jobs/${current.id}/export-video?${q}`, {method:"POST", body:r.wav});
+      const res = await api(`/api/jobs/${job.id}/export-video?${q}`, {method:"POST", body:r.wav});
       download(await res.blob(), r.name + ".mp4");
     }
     toast(`Downloaded “${r.name}.${exportFmt}”`, {type:"ok"});

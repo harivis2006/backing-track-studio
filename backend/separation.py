@@ -73,6 +73,10 @@ def _separator(model: str, out_dir: Path):
             output_format="WAV",
             normalization_threshold=1.0,  # never rescale parts: they must add back up to the original
             log_level=30,                 # warnings only
+            # Overlap 4 (default 8) halves the splitting time. Measured against 8: vocals/bass/guitar/other are
+            # practically identical (30-52 dB apart), drums/piano 15-18 dB; overlap 2 changed drums too much.
+            mdxc_params={"segment_size": 256, "override_model_segment_size": False, "batch_size": 1, "overlap": 4,
+                         "pitch_shift": 0},
             vr_params={"batch_size": 4, "window_size": 512, "aggression": 5, "enable_tta": False,
                        "enable_post_process": False, "post_process_threshold": 0.2, "high_end_process": False},
         )
@@ -83,6 +87,15 @@ def _separator(model: str, out_dir: Path):
     if getattr(sep, "model_instance", None) is not None:
         sep.model_instance.output_dir = str(out_dir)
     return sep
+
+
+def loaded() -> bool:
+    return bool(_separators)
+
+
+def unload() -> None:
+    """Let go of the splitting models (~1.5 GB); they're loaded again (a few seconds) for the next song."""
+    _separators.clear()
 
 
 def load_models() -> None:
@@ -112,9 +125,14 @@ def separate(model: str, src: Path, out_dir: Path, names: dict[str, str], on_pro
 
 def finalize_stems(stems_dir: Path) -> None:
     """Remove any leftover DC offset and store each part as lossless FLAC (about half the size of WAV)."""
+    from concurrent.futures import ThreadPoolExecutor
+
     import soundfile as sf
 
-    for p in stems_dir.glob("*.wav"):
+    def one(p):
         x, sr = sf.read(p, dtype="float32")
         sf.write(p.with_suffix(".flac"), (x - x.mean(axis=0)).clip(-1, 1), sr, subtype="PCM_16")
         p.unlink()
+
+    with ThreadPoolExecutor(4) as pool:  # the parts are independent; encoding them side by side is ~3x faster
+        list(pool.map(one, stems_dir.glob("*.wav")))

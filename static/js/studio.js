@@ -3,7 +3,8 @@
 // and remembering your settings per song.
 
 function closeStudio() {
-  if (recording) stopRecording();
+  if (recording) stopRecording();  // finishes saving the take in the background (it remembers which song it belongs to)
+  flushChordSave();
   if (playing) pause();
   loadToken++; current = null; teardown();
   vid.removeAttribute("src"); vid.load();
@@ -33,6 +34,7 @@ async function openJob(id) {
   const job = jobs.find(j => j.id === id); if (!job || job.status !== "done") return;
   if (recording) await stopRecording();
   if (playing) pause();
+  flushChordSave();
   hideProcessing();
   clearTimeout(practiceTimer);
   const token = ++loadToken;
@@ -96,6 +98,7 @@ function buildRow(name, pk, st) {
   s.volEl.ondblclick = () => { s.vol = 1; s.volEl.value = 1; applyGains(); };
   return s;
 }
+let loadingKey = null;  // the version whose parts are downloading right now
 async function loadVariant(token, key = "") {
   const want = {speed, semis};
   const stale = () => token !== loadToken || want.speed !== speed || want.semis !== semis;
@@ -113,7 +116,9 @@ async function loadVariant(token, key = "") {
     }
     if (stale()) return;
   }
-  if (key === loadedVariant && live().length) { $("#practiceStatus").textContent = ""; return; }
+  if (key === loadedVariant && live().length) { $("#practiceStatus").textContent = ""; if (!loadingKey) setLoading(1, false); return; }
+  if (key === loadingKey) return;  // already on its way (e.g. 90% -> 95% -> 90%): that load will finish the job
+  loadingKey = key;
   const todo = stems.filter(s => !s.empty);
   let done = 0;
   setLoading(0.1, true);
@@ -127,7 +132,7 @@ async function loadVariant(token, key = "") {
       setLoading(0.1 + 0.9 * (++done / todo.length), true);
       return b;
     }));
-    if (stale()) return;
+    if (stale()) { if (loadingKey === key) { loadingKey = null; setLoading(1, false); } return; }
     if (recording) await stopRecording();
     const pos = curPos(), was = playing;  // measured with the OLD rate, before swapping
     if (was) { stopAll(); playing = false; }
@@ -140,6 +145,8 @@ async function loadVariant(token, key = "") {
     if (was) play(pos, {countIn:false});
   } catch (err) {
     if (!stale()) { toast(`Couldn't load audio: ${err.message}`, {type:"err"}); setLoading(1, false); $("#practiceStatus").textContent = ""; }
+  } finally {
+    if (loadingKey === key) loadingKey = null;
   }
 }
 function setLoading(frac, on) {

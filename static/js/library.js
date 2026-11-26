@@ -33,31 +33,93 @@ async function refresh() {
 }
 const eta = s => !s ? "" : s < 60 ? `~${Math.round(s)} s left` : `~${Math.round(s/60)} min left`;
 const sourceTag = j => j.matched || /spotify/.test(j.url || "") ? "Spotify" : j.url ? "YouTube" : "";
+// One row per song. Rows are only rebuilt when something about them changed (the list is refreshed every
+// second while a song is processing), so hovering, clicking and renaming aren't interrupted.
+const STEP_LABEL = ["Getting the song", "Splitting", "Finding sax & brass", "Beats & chords"];
+function trackRow(j, ahead) {
+  const busy = j.status === "queued" || j.status === "running", pct = Math.round((j.progress || 0) * 100);
+  let sub, art;
+  if (j.status === "done") {
+    sub = `${j.duration ? fmt(j.duration) + " · " : ""}${j.stems.length} parts`;
+    art = j.video || j.matched || j.url
+      ? `<div class="art"><img loading="lazy" src="${apiUrl(`/api/jobs/${j.id}/thumb`)}" alt="" onerror="this.remove()"></div>`
+      : `<div class="art">♪</div>`;
+  } else if (j.status === "error") {
+    sub = "Couldn't finish — click for details"; art = `<div class="art fail">!</div>`;
+  } else if (j.status === "queued") {
+    sub = ahead ? `In queue · ${ahead} ahead` : "Starting…"; art = `<div class="art ring wait"><b>…</b></div>`;
+  } else {
+    sub = `${STEP_LABEL[Math.min(3, stepOf(j))]}${j.eta ? " · " + eta(j.eta) : ""}`;
+    art = `<div class="art ring" style="--p:${Math.max(2, pct)}"><b>${pct}<small>%</small></b></div>`;
+  }
+  const tags = j.status === "done" ? [sourceTag(j), j.video ? "video" : ""].filter(Boolean).map(t => `<span class="tag">${t}</span>`).join("") : "";
+  const acts = (j.status === "error" ? `<button data-act="retry" title="Try again" aria-label="Try again">↻</button>` : "")
+             + `<button data-act="rename" title="Rename" aria-label="Rename">✎</button>`
+             + `<button data-act="del" title="${busy ? "Cancel" : "Delete"}" aria-label="${busy ? "Cancel" : "Delete"}">✕</button>`;
+  const cls = ["track", current?.id === j.id || watching === j.id ? "active" : "", busy ? "busy" : "", j.status === "error" ? "err" : ""].join(" ");
+  return `<div class="${cls}" data-id="${j.id}" title="${esc(j.title)}" tabindex="0">
+    ${art}<div class="body"><div class="t">${esc(j.title)}</div><div class="s"><span class="sub">${esc(sub)}</span>${tags}</div></div>
+    <div class="acts">${acts}</div></div>`;
+}
+let libRows = new Map();  // id -> html last drawn
 function renderLib() {
-  if (!jobs.length) { $("#lib").innerHTML = `<div class="hint" style="padding:10px 12px">Your tracks will appear here.</div>`; return; }
+  const lib = $("#lib");
+  if (lib.querySelector(".t input")) return;  // don't redraw under a rename in progress
+  if (!jobs.length) { lib.innerHTML = `<div class="hint" style="padding:10px 12px">Your tracks will appear here.</div>`; libRows = new Map(); return; }
   $("#libSearch").style.display = jobs.length > 5 ? "block" : "none";
+  if (jobs.length <= 5) $("#libSearch").value = "";
   const q = $("#libSearch").value.trim().toLowerCase();
   const shown = q ? jobs.filter(j => j.title.toLowerCase().includes(q)) : jobs;
-  $("#lib").innerHTML = `<div class="libhead">Tracks${q ? ` · ${shown.length} of ${jobs.length}` : ""}</div>` + shown.map(j => {
-    const busy = j.status === "queued" || j.status === "running";
-    const pct = Math.round((j.progress || 0) * 100);
-    let s;
-    if (j.status === "done") s = `${j.duration ? fmt(j.duration) + " · " : ""}${j.stems.length} parts`;
-    else if (j.status === "error") s = `Failed: ${j.error || ""}`;
-    else if (j.status === "queued") s = "Waiting in queue";
-    else s = `${j.stage} · ${pct}%${j.eta ? " · " + eta(j.eta) : ""}`;
-    const tags = [sourceTag(j), j.video ? "video" : ""].filter(Boolean).map(t => `<span class="tag">${t}</span>`).join("");
-    const acts = (j.status === "error" ? `<button data-act="retry" title="Try again" aria-label="Try again">↻</button>` : "")
-               + `<button data-act="del" title="${busy ? "Cancel" : "Delete"}" aria-label="${busy ? "Cancel" : "Delete"}">✕</button>`;
-    const art = j.status === "done" && (j.video || j.matched || j.url)
-      ? `<div class="art"><img loading="lazy" src="${apiUrl(`/api/jobs/${j.id}/thumb`)}" alt="" onerror="this.remove()"></div>`
-      : `<div class="art">${j.status === "error" ? "!" : busy ? "…" : "♪"}</div>`;
-    return `<div class="track ${current?.id===j.id || watching===j.id?"active":""} ${busy?"busy":""} ${j.status==="error"?"err":""}" data-id="${j.id}" title="${esc(j.title)}" tabindex="0">
-      ${art}<div class="body"><div class="t">${esc(j.title)}</div><div class="s"><span>${esc(s)}</span>${tags}</div>
-      ${busy ? `<div class="bar"><i style="width:${Math.max(3, pct)}%"></i></div>` : ""}</div>
-      <div class="acts">${acts}</div></div>`;
-  }).join("");
+  const waiting = jobs.filter(j => j.status === "queued" || j.status === "running").sort((a, b) => (a.queued_at || a.created) - (b.queued_at || b.created));
+  const head = `<div class="libhead">Tracks${q ? ` · ${shown.length} of ${jobs.length}` : ""}</div>`;
+  const rows = shown.map(j => [j.id, trackRow(j, j.status === "queued" ? waiting.indexOf(j) : 0)]);
+  const sameOrder = lib.firstElementChild?.outerHTML === head && rows.length === libRows.size && rows.every(([id], i) => [...libRows.keys()][i] === id);
+  if (!sameOrder) {
+    lib.innerHTML = head + rows.map(r => r[1]).join("");
+  } else {
+    for (const [id, html] of rows) {
+      if (libRows.get(id) === html) continue;
+      const el = lib.querySelector(`.track[data-id="${id}"]`); if (!el) continue;
+      const tmp = document.createElement("div"); tmp.innerHTML = html.trim();
+      const fresh = tmp.firstElementChild, oldImg = el.querySelector(".art img"), newImg = fresh.querySelector(".art img");
+      if (oldImg && newImg && oldImg.src === newImg.src) newImg.replaceWith(oldImg);  // keep the loaded artwork, no flicker
+      el.replaceWith(fresh);
+    }
+  }
+  libRows = new Map(rows);
 }
+
+// rename: the ✎ button, double-clicking a song's name in the list, or the title above the player
+function renameInline(el, job, onDone) {
+  const input = document.createElement("input");
+  input.value = job.title; input.className = "rename"; input.setAttribute("aria-label", "Song name"); input.spellcheck = false;
+  const old = el.innerHTML; el.innerHTML = ""; el.appendChild(input); input.focus(); input.select();
+  let done = false;
+  const finish = async save => {
+    if (done) return; done = true;
+    const t = input.value.trim();
+    el.textContent = job.title;
+    if (save && t && t !== job.title) {
+      try {
+        const j = await (await api(`/api/jobs/${job.id}`, {method: "PATCH", headers: {"Content-Type": "application/json"}, body: JSON.stringify({title: t})})).json();
+        job.title = j.title; if (current?.id === job.id) { current.title = j.title; $("#title").textContent = j.title; }
+        el.textContent = j.title;
+      } catch (e) { toast(e.message, {type: "err"}); el.innerHTML = old; }
+    }
+    onDone?.(); refresh();
+  };
+  input.onkeydown = e => { e.stopPropagation(); if (e.key === "Enter") finish(true); if (e.key === "Escape") finish(false); };
+  input.onclick = e => e.stopPropagation();
+  input.onblur = () => finish(true);
+}
+function renameTrack(id) {
+  const j = jobs.find(x => x.id === id), el = $(`#lib .track[data-id="${id}"] .t`); if (!j || !el) return;
+  renameInline(el, j);
+}
+$("#lib").addEventListener("dblclick", e => {
+  const t = e.target.closest(".track .t"); if (!t || t.querySelector("input")) return;
+  e.preventDefault(); renameTrack(t.closest(".track").dataset.id);
+});
 $("#lib").addEventListener("click", async e => {
   const el = e.target.closest(".track"); if (!el) return;
   const id = el.dataset.id, j = jobs.find(j => j.id === id); if (!j) return;
@@ -72,6 +134,8 @@ $("#lib").addEventListener("click", async e => {
       return refresh();
     }
     if (act === "retry") { await api(`/api/jobs/${id}/retry`, {method:"POST"}); return refresh(); }
+    if (act === "rename") return renameTrack(id);
+    if (e.target.closest(".t input")) return;
     if (j.status === "done") openJob(id); else showProcessing(id);
   } catch (err) { toast(err.message, {type:"err"}); }
 });

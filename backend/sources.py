@@ -26,6 +26,12 @@ _BROWSER_UA = {"User-Agent": "Mozilla/5.0"}
 
 
 # ---------------------------------------------------------------- YouTube (and other yt-dlp sites)
+
+def _auto_title(job_id: str, title: str | None) -> None:
+    """Name the song after the video / Spotify track — unless you've already renamed it."""
+    if title and not jobs.jobs[job_id].get("renamed"):
+        jobs.update(job_id, title=title)
+
 def download_video(job_id: str, progress: Progress) -> None:
     import yt_dlp
 
@@ -41,7 +47,7 @@ def download_video(job_id: str, progress: Progress) -> None:
             raise RuntimeError("That's a live stream; try again once it has finished and been processed")
         if (info.get("duration") or 0) > MAX_MINUTES * 60:
             raise RuntimeError(f"Video is longer than {MAX_MINUTES} minutes")
-        jobs.update(job_id, title=info.get("title") or jobs.jobs[job_id]["title"])
+        _auto_title(job_id, info.get("title"))
         save_cover(jdir, info.get("thumbnail"))
         ydl.process_info(info)
     out = next(p for p in jdir.glob("video.*") if not p.name.endswith(".part"))
@@ -140,7 +146,8 @@ def download_spotify(job_id: str, progress: Progress) -> None:
     jdir = job_dir(job_id)
     progress.set(0.02, label="Reading Spotify link", force=True)
     track = spotify_track(jobs.jobs[job_id]["url"])
-    jobs.update(job_id, title=f"{track['artist']} - {track['title']}", spotify=track)
+    jobs.update(job_id, spotify=track)
+    _auto_title(job_id, f"{track['artist']} - {track['title']}")
     save_cover(jdir, track.get("image"))
     progress.set(0.1, label="Finding the song on YouTube", force=True)
     match = find_on_youtube(track)

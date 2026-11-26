@@ -18,8 +18,8 @@ const chordsShown = () => hasChords() && prefs.chordsOn !== false;
 
 function setChords(detected, mine = null) {
   detectedChords = toList(detected);
-  chords = mine ? toList(mine) : detectedChords.map(c => ({...c}));
-  chordsEdited = !!mine; chordUndo = [];
+  chords = mine?.length ? toList(mine) : detectedChords.map(c => ({...c}));
+  chordsEdited = !!mine?.length; chordUndo = [];
   syncChordsVisible();
 }
 function syncChordsVisible() {
@@ -92,23 +92,27 @@ function replaceRange(t0, t1, items) {
   }
   chordsChanged();
 }
-let saveTimer = null;
+let pendingSave = null;  // {timer, run}: the next save, sent 400 ms after the last edit (or straight away on song switch)
 function chordsChanged() {
   chordsEdited = true; syncChordsVisible(); if (chartDlg.open) renderChart();
-  const id = current?.id; clearTimeout(saveTimer);
-  saveTimer = setTimeout(async () => {
-    try {
-      await api(`/api/jobs/${id}/chords`, {method: "PUT", headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({list: chords.map(c => [c.t, c.e, c.root, c.q])})});
-    } catch (e) { toast(`Couldn't save your chord changes: ${e.message}`, {type: "err"}); }
-  }, 400);
+  const id = current?.id, body = JSON.stringify({list: chords.map(c => [c.t, c.e, c.root, c.q])});  // captured now, not later
+  if (!id) return;
+  if (pendingSave) clearTimeout(pendingSave.timer);
+  const run = async () => {
+    pendingSave = null;
+    try { await api(`/api/jobs/${id}/chords`, {method: "PUT", headers: {"Content-Type": "application/json"}, body}); }
+    catch (e) { toast(`Couldn't save your chord changes: ${e.message}`, {type: "err"}); }
+  };
+  pendingSave = {timer: setTimeout(run, 400), run};
 }
+function flushChordSave() { if (pendingSave) { clearTimeout(pendingSave.timer); pendingSave.run(); } }
 function undoChord() {
   if (!chordUndo.length) return;
   chords = JSON.parse(chordUndo.pop()); chordsChanged();
 }
 async function resetChords() {
   if (!confirm("Go back to the detected chords? Your changes to this song's chords will be lost.")) return;
+  if (pendingSave) { clearTimeout(pendingSave.timer); pendingSave = null; }
   try { await api(`/api/jobs/${current.id}/chords`, {method: "DELETE"}); } catch (e) { return toast(e.message, {type: "err"}); }
   chordUndo.push(JSON.stringify(chords));
   chords = detectedChords.map(c => ({...c})); chordsEdited = false; syncChordsVisible(); if (chartDlg.open) renderChart();
@@ -131,7 +135,7 @@ function drawChords() {
   if (c.width !== Math.round(w * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
   const g = c.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
   const now = chordIndexAt(curPos()), shift = chordShift();
-  g.font = `600 12.5px ${css("--font") || "sans-serif"}`; g.textBaseline = "middle";
+  g.font = cv.laneFont; g.textBaseline = "middle";
   const shown = [];
   for (let i = 0; i < chords.length; i++) {
     const ch = chords[i]; if (ch.e < view.a || ch.t > view.b || ch.root < 0) continue;

@@ -54,6 +54,7 @@ async function startRecording() {
 async function stopRecording() {
   if (!recording) return;
   recording = false;
+  const job = current;  // the song this take belongs to, even if another one is opened meanwhile
   $("#rec").classList.remove("on"); $("#rec").setAttribute("aria-label", "Record");
   const t0 = startedAt, from = recFrom, endCtx = ctx.currentTime, sr = ctx.sampleRate;
   await new Promise(r => setTimeout(r, 120));  // let the last chunk arrive
@@ -75,8 +76,9 @@ async function stopRecording() {
   const start = from / rate - lat;  // buffer time (at the current rate) where the take's first sample belongs
   try {
     const q = new URLSearchParams({start, rate, semis: rateSemis});
-    const r = await api(`/api/jobs/${current.id}/takes?${q}`, {method:"POST", body: monoWav(pcm, sr)});
+    const r = await api(`/api/jobs/${job.id}/takes?${q}`, {method:"POST", body: monoWav(pcm, sr)});
     const meta = await r.json();
+    if (current !== job) { toast(`Saved ${meta.name} to “${job.title}”.`, {type:"ok"}); return; }
     const buf = ctx.createBuffer(1, pcm.length, sr); buf.copyToChannel(pcm, 0);
     for (const t of takes) if (!t.mute) t.mute = true;  // newest take plays, older ones get muted
     addTake(meta, buf, true);
@@ -150,7 +152,8 @@ function nudgeTake(t, d) {
   t.start += d; updateTakeRows(); drawAll();
   if (playing) play(curPos(), {countIn:false});
   clearTimeout(nudgeTimer);
-  nudgeTimer = setTimeout(() => api(`/api/jobs/${current.id}/takes/${t.id}`, {method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({start:t.start})}).catch(e => toast(e.message, {type:"err"})), 500);
+  const id = current.id, body = JSON.stringify({start: t.start});  // captured now, in case another song opens within 0.5 s
+  nudgeTimer = setTimeout(() => api(`/api/jobs/${id}/takes/${t.id}`, {method:"PATCH", headers:{"Content-Type":"application/json"}, body}).catch(e => toast(e.message, {type:"err"})), 500);
 }
 function updateTakeRows() {
   for (const t of takes) {

@@ -60,6 +60,8 @@ def new_job(**fields) -> dict:
 
 
 def enqueue(job_id: str) -> None:
+    if job_id in jobs:
+        jobs[job_id]["queued_at"] = time.time()  # retried songs go to the back of the queue
     work_queue.put(job_id)
 
 

@@ -9,8 +9,15 @@ function updatePracticeUI() {
   $("#spDown").disabled = speed <= SPEEDS[0]; $("#spUp").disabled = speed >= SPEEDS.at(-1);
   $("#kDown").disabled = semis <= -12; $("#kUp").disabled = semis >= 12;
 }
+const MAX_AUDIO_MB = 2600;  // decoded audio the page may hold while switching versions (old + new), to stay clear of tab limits
+const audioMB = sp => live().length * (duration / sp / 60) * 21.2;
 function changePractice(newSpeed, newSemis) {
   if (!current || recording) return;
+  if (newSpeed < speed && audioMB(newSpeed) + audioMB(rate) > MAX_AUDIO_MB) {
+    const slowest = SPEEDS.find(v => audioMB(v) + audioMB(rate) <= MAX_AUDIO_MB) || 1;
+    toast(`This song is too long to slow down below ${Math.round(slowest * 100)}% in the browser — loop a section and export it, or mute parts you don't need.`, {type: "err", ms: 8000});
+    return;
+  }
   speed = newSpeed; semis = newSemis; updatePracticeUI(); saveState();
   clearTimeout(practiceTimer);
   $("#practiceStatus").textContent = speed === rate && semis === rateSemis ? "" : "…";

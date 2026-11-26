@@ -118,7 +118,7 @@ def rename_job(job_id: str, body: Rename):
     title = " ".join(body.title.split())[:200]
     if not title:
         raise HTTPException(400, "The name can't be empty")
-    jobs.update(job_id, title=title)
+    jobs.update(job_id, title=title, renamed=True)  # renamed by you: the download won't replace it with the video's title
     return jobs.public(jobs.jobs[job_id])
 
 
@@ -179,7 +179,11 @@ def save_chords(job_id: str, body: ChordsIn):
             raise HTTPException(400, "That chord list isn't valid")
         clean.append([round(t, 3), round(e, 3), root, q])
         last_end = e
-    atomic_write_json(jobs.job_dir(job_id) / "chords_user.json", clean)
+    path = jobs.job_dir(job_id) / "chords_user.json"
+    if clean:
+        atomic_write_json(path, clean)
+    else:
+        path.unlink(missing_ok=True)  # nothing to keep: fall back to the detected chords
     return {"ok": True}
 
 

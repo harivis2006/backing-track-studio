@@ -159,6 +159,11 @@ def _download_weights() -> None:
     tmp.rename(WEIGHTS)
 
 
+def unload() -> None:
+    global _model
+    _model = None
+
+
 def chord_model():
     """Load once. The file is read in safe mode: only tensors and plain numbers, never code."""
     global _model
@@ -178,24 +183,45 @@ def chord_model():
 
 
 # ---------------------------------------------------------------- recognising chords
-def frame_probabilities(mono, sr):
+def _fold_to_pitch_classes(mag):
+    """CQT magnitudes (144 bins, 2 per semitone from C1) -> total energy per pitch class C..B."""
+    import numpy as np
+
+    per_bin = mag.sum(axis=1)
+    return [float(per_bin[k::2 * 12].sum() + per_bin[k + 1::2 * 12].sum()) for k in range(0, 24, 2)]
+
+
+def pitch_profile(mono, sr):
+    """Pitch-class energy of a mix (same features as the chord model), for the key."""
+    import librosa
+    import numpy as np
+    import soxr
+
+    y = soxr.resample(mono, sr, SR).astype(np.float32) if sr != SR else mono.astype(np.float32)
+    return _fold_to_pitch_classes(np.abs(librosa.cqt(y, sr=SR, n_bins=BINS, bins_per_octave=PER_OCTAVE, hop_length=HOP)))
+
+
+def frame_probabilities(mono, sr, with_profile=False):
     """Chord probabilities for every ~0.09 s frame: (frames x 170)."""
     import librosa
     import numpy as np
     import torch
     from scipy.signal import resample_poly
 
+    model, mean, std = chord_model()  # first, so a failed download fails fast (before the slow CQT)
     y = resample_poly(mono, SR, sr).astype(np.float32) if sr != SR else mono.astype(np.float32)
     chunk = int(SR * CHUNK_SECONDS)  # features are made per 10-second chunk, exactly as the model was trained
     cqt = [librosa.cqt(y[i:i + chunk], sr=SR, n_bins=BINS, bins_per_octave=PER_OCTAVE, hop_length=HOP)
            for i in range(0, len(y), chunk) if len(y[i:i + chunk]) > HOP]
-    feats = np.log(np.abs(np.concatenate(cqt, axis=1)) + 1e-6).T
-    model, mean, std = chord_model()
+    mag = np.abs(np.concatenate(cqt, axis=1))
+    profile = _fold_to_pitch_classes(mag)  # for the key, so it needs no pitch analysis of its own
+    feats = np.log(mag + 1e-6).T
     n = len(feats)
     feats = np.pad((feats - mean) / std, ((0, -n % STEPS), (0, 0)))
     with _lock, torch.no_grad():
         logits = model(torch.from_numpy(feats.reshape(-1, STEPS, BINS)).float())
-    return torch.log_softmax(logits, -1).reshape(-1, 170)[:n].numpy()
+    logp = torch.log_softmax(logits, -1).reshape(-1, 170)[:n].numpy()
+    return (logp, profile) if with_profile else logp
 
 
 def label(idx: int):
@@ -294,7 +320,9 @@ def analyze_chords(jdir, beats: dict | None) -> dict:
     mix = harmony_mix(jdir)
     if mix is None:
         return {"v": CHORDS_VERSION, "list": []}
-    logp = frame_probabilities(mix, 44100)
+    from .analysis import ANALYSIS_SR
+
+    logp, profile = frame_probabilities(mix, ANALYSIS_SR, with_profile=True)
     logp[:, [k for k in range(168) if QUALITIES[k % 14] in RICH]] += RICH_BOOST
     times = (beats or {}).get("times") or []
     segs = segments_on_beats(logp, beats) if len(times) >= 8 else segments_free(logp)
@@ -305,4 +333,4 @@ def analyze_chords(jdir, beats: dict | None) -> dict:
             out[-1][1] = round(s["e"], 3)
             continue
         out.append([round(s["t"], 3), round(s["e"], 3), root, quality])
-    return {"v": CHORDS_VERSION, "list": out}
+    return {"v": CHORDS_VERSION, "list": out, "profile": profile}

@@ -20,7 +20,7 @@ document.addEventListener("keydown", e => {
   else if (k === "Home" || k === "0") { e.preventDefault(); seek(loopOn() ? loopA : 0); }
   else if (/^Digit[1-7]$/.test(e.code)) {
     const s = stems[+e.code.slice(5) - 1]; if (!s || s.empty) return;
-    e.preventDefault(); if (e.shiftKey) s.solo = !s.solo; else s.mute = !s.mute; applyGains();
+    e.preventDefault(); setAB(false); if (e.shiftKey) s.solo = !s.solo; else s.mute = !s.mute; applyGains();
   }
   else if (k === "r" || k === "R") { e.preventDefault(); $("#rec").click(); }
   else if (k === "l" || k === "L") { if (loopA !== null) { $("#loop").checked = !$("#loop").checked; $("#loop").onchange(); } }

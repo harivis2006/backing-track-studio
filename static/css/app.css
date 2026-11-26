@@ -5,7 +5,7 @@
 
 :root{
   --bg:#e6e6ea; --tile:#fff; --soft:#f2f2f5; --soft2:#e9e9ee; --ink:#1d1d1f; --mute:#6e6e73; --faint:#a1a1a6; --line:#e3e3e8; --line2:#d2d2d7;
-  --acc:#0a84ff; --acc-ink:#fff; --acc-soft:#0a84ff14; --danger:#ff3b30; --ok:#30d158; --rec:#ff375f;
+  --acc:#0a84ff; --acc-ink:#fff; --acc-soft:#0a84ff14; --active-bg:color-mix(in srgb,#0a84ff 8%,#fff); --danger:#ff3b30; --ok:#30d158; --rec:#ff375f;
   --grad:linear-gradient(90deg,#0a84ff,#bf5af2,#ff375f);
   --sh:0 1px 2px rgba(0,0,0,.04); --shh:0 18px 40px rgba(0,0,0,.14); --shm:0 10px 30px rgba(0,0,0,.12);
   --ease:cubic-bezier(.16,1,.3,1);
@@ -24,7 +24,7 @@
 @media (prefers-color-scheme:dark){
   :root{
     --bg:#000; --tile:#1c1c1e; --soft:#2c2c2e; --soft2:#3a3a3c; --ink:#f5f5f7; --mute:#a1a1a6; --faint:#6e6e73; --line:#2c2c2e; --line2:#3a3a3c;
-    --acc-soft:#0a84ff26; --shh:0 18px 40px rgba(0,0,0,.6); --shm:0 10px 30px rgba(0,0,0,.5);
+    --acc-soft:#0a84ff26; --active-bg:color-mix(in srgb,#0a84ff 15%,#1c1c1e); --shh:0 18px 40px rgba(0,0,0,.6); --shm:0 10px 30px rgba(0,0,0,.5);
     --vocals:#ff375f; --winds:#ff9f0a; --guitar:#30d158; --piano:#7d7aff; --other:#64d2ff; --bass:#bf5af2; --drums:#c4a77d; --take:#0a84ff;
     --cv-tick:#3a3a3c; --cv-tick-major:#8e8e93; --cv-text:#8e8e93; --cv-playhead:#f5f5f7;
     --cv-loop:#0a84ff33; --cv-sel:#f5f5f712; --cv-sel-edge:#f5f5f750; --cv-chord:#2c2c2e; --cv-chord-text:#f5f5f7;
@@ -88,23 +88,39 @@ aside .sub{color:var(--mute);font-size:12.5px;margin:8px 18px 14px}
 #lib{overflow:auto;flex:1;padding:0 8px 12px}
 .libhead{margin:8px 10px 6px}
 .track{display:grid;grid-template-columns:44px 1fr;gap:11px;align-items:center;padding:8px;border-radius:14px;cursor:pointer;margin-bottom:2px;position:relative;
-  transition:background .25s var(--ease),transform .4s var(--ease)}
+  transition:background .25s var(--ease)}
 .track:hover{background:var(--soft)}
 .track.active{background:var(--acc-soft)}
 .track.active .t{color:var(--acc)}
-.track.busy{cursor:pointer}
-.track .art{width:44px;height:44px;border-radius:11px;background:var(--soft);display:grid;place-items:center;font-size:18px;color:var(--faint);overflow:hidden}
+.track .art{width:44px;height:44px;border-radius:11px;background:var(--soft);display:grid;place-items:center;font-size:18px;color:var(--faint);overflow:hidden;position:relative}
+.track:hover .art{background:var(--soft2)}
 .track .art img{width:100%;height:100%;object-fit:cover;display:block}
+/* a song being split: a progress ring around the percentage */
+.track .art.ring{border-radius:50%;background:conic-gradient(var(--acc) calc(var(--p,0) * 1%),var(--soft2) 0);transition:--p .8s var(--ease)}
+.track .art.ring::before{content:"";position:absolute;inset:4px;border-radius:50%;background:var(--tile)}
+.track .art.ring b{position:relative;font-size:12px;font-weight:700;color:var(--ink);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.track .art.ring b small{font-size:8px;font-weight:600;margin-left:1px}
+.track .art.ring.wait{background:conic-gradient(var(--acc) 0 22%,var(--soft2) 0);animation:rot 1.4s linear infinite}
+.track .art.ring.wait b{animation:rot 1.4s linear infinite reverse;color:var(--mute)}
+.track.active .art.ring::before{background:var(--active-bg)}
+.track .art.fail{background:#ff3b301a;color:var(--danger);font-weight:800;font-size:17px}
 .track .body{min-width:0}
-.track .t{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:40px}
-.track .s{color:var(--mute);font-size:12px;margin-top:2px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.track .bar{height:4px;background:var(--soft2);border-radius:2px;margin-top:7px;overflow:hidden}
-.track .bar i{display:block;height:100%;background:var(--grad);border-radius:2px;transition:width .6s var(--ease)}
-.track .acts{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:none;gap:2px}
-.track:hover .acts,.track.busy .acts,.track.err .acts{display:flex}
-.track .acts button{background:none;color:var(--faint);padding:3px 7px;font-size:13px}
+.track .t{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track .s{color:var(--mute);font-size:12px;margin-top:2px;display:flex;gap:6px;align-items:center;min-width:0}
+.track .s .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.track.busy .s .sub{color:var(--acc);font-weight:500}
+.track.err .s .sub{color:var(--danger)}
+.track .acts{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:flex;gap:1px;padding-left:22px;opacity:0;pointer-events:none;
+  background:linear-gradient(90deg,transparent,var(--soft) 22px);border-radius:0 10px 10px 0;transition:opacity .2s var(--ease)}
+.track.active .acts{background:linear-gradient(90deg,transparent,var(--active-bg) 22px)}
+.track:hover .acts,.track:focus-within .acts{opacity:1;pointer-events:auto}
+.track .acts button{background:none;color:var(--mute);padding:4px 7px;font-size:13px;border-radius:8px}
 .track .acts button:hover{color:var(--ink);background:var(--soft2)}
-.track.err .s{color:var(--danger)}
+.track .acts button[data-act=del]:hover{color:var(--danger)}
+.track.busy .acts button[data-act=rename]{display:none}
+input.rename{width:100%;font:inherit;color:var(--ink);background:var(--tile);border:0;border-radius:8px;padding:2px 6px;margin:-2px -6px;outline:none;box-shadow:0 0 0 2px var(--acc)}
+header h2 input.rename{font-size:inherit;font-weight:inherit;letter-spacing:inherit;margin:-3px -8px;padding:3px 8px}
+@property --p{syntax:"<number>";inherits:false;initial-value:0}
 .tag{font-size:10px;font-weight:600;border-radius:99px;padding:0 6px;line-height:16px;background:var(--soft2);color:var(--mute)}
 
 /* ---------- main */

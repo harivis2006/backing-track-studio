@@ -62,7 +62,7 @@ function readTheme() {
   cv = {tick:css("--cv-tick"), tickMajor:css("--cv-tick-major"), text:css("--cv-text"), playhead:css("--cv-playhead"),
         loop:css("--cv-loop"), loopEdge:css("--cv-loop-edge"), sel:css("--cv-sel"), selEdge:css("--cv-sel-edge"),
         marker:css("--cv-marker"), markerLine:css("--cv-marker-line"),
-        chord:css("--cv-chord"), chordText:css("--cv-chord-text"), chordOn:css("--cv-chord-on"), chordOnText:css("--cv-chord-on-text")};
+        laneFont:`600 12.5px ${css("--font") || "sans-serif"}`, chord:css("--cv-chord"), chordText:css("--cv-chord-text"), chordOn:css("--cv-chord-on"), chordOnText:css("--cv-chord-on-text")};
   for (const p of allParts()) { p.color = css(p.isTake ? "--take" : `--${p.name}`) || p.color; p.cache = null; }
 }
 readTheme();
@@ -270,7 +270,8 @@ function updateLoopHint() {
   $("#clearLoop").style.display = has ? "inline-block" : "none";
   $("#loop").disabled = !has;
 }
-$("#loop").onchange = () => { updateLoopHint(); if (playing && !recording) play(curPos(), {countIn:false}); saveState(); drawAll(); };
+$("#loop").onchange = () => {
+  if (recording && $("#loop").checked) { $("#loop").checked = false; toast("Loop stays off while you're recording — stop recording first."); return; } updateLoopHint(); if (playing && !recording) play(curPos(), {countIn:false}); saveState(); drawAll(); };
 $("#clearLoop").onclick = () => { loopA = loopB = null; $("#loop").checked = false; updateLoopHint(); if (playing && !recording) play(curPos(), {countIn:false}); saveState(); drawAll(); };
 $("#master").oninput = e => { ensureCtx(); master.gain.value = +e.target.value; saveState(); };
 $("#master").ondblclick = e => { e.target.value = 1; master.gain.value = 1; saveState(); };

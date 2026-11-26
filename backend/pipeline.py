@@ -1,11 +1,12 @@
 """Processing a song from start to finish, one at a time on a single background worker thread."""
 
+import queue
 import re
 import shutil
 import time
 import traceback
 
-from . import analysis, jobs, separation, sources
+from . import analysis, chords, jobs, separation, sources
 from .config import SPLIT_MODEL, STEMS, WEIGHTS_FILE, WEIGHTS_LINK, WIND_MODEL, log
 from .jobs import Cancelled, Progress, job_dir
 
@@ -43,9 +44,10 @@ def process(job_id: str) -> None:
     jobs.update(job_id, duration=round(sources.decode_to_wav(jdir / job["source"], mix), 2))
 
     # 3. split into 6 parts
-    if not separation.models_ready.is_set():
-        progress.enter("split", "Loading AI models (first run after start-up)")
+    if not separation.models_ready.is_set() or not separation.loaded():
+        progress.enter("split", "Loading AI models (a few seconds)")
         separation.models_ready.wait()
+        separation.load_models()
     progress.enter("split", "Splitting vocals, drums, bass, guitar, piano")
     six = {"Vocals": "vocals", "Drums": "drums", "Bass": "bass", "Guitar": "guitar", "Piano": "piano",
            "Other": "other_full"}
@@ -91,10 +93,34 @@ def load_models() -> None:
         separation.models_ready.set()
 
 
+IDLE_UNLOAD = 600  # seconds without a song to split before the AI models are let go to free memory
+
+
+def free_models() -> None:
+    """Release the AI models while idle (~1.7 GB). Anything that needs one loads it again by itself."""
+    import gc
+
+    if not separation.loaded():
+        return
+    separation.unload(); analysis.unload_models(); chords.unload()
+    gc.collect()
+    try:
+        import torch
+        if torch.backends.mps.is_available():
+            torch.mps.empty_cache()
+    except Exception:  # noqa: BLE001
+        pass
+    log.info("idle: AI models released to free memory")
+
+
 def worker() -> None:
     load_models()
     while True:
-        job_id = jobs.work_queue.get()
+        try:
+            job_id = jobs.work_queue.get(timeout=IDLE_UNLOAD)
+        except queue.Empty:
+            free_models()
+            continue
         try:
             if job_id in jobs.jobs and not jobs.jobs[job_id].get("_cancel"):
                 process(job_id)

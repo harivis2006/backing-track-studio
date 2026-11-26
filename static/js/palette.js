@@ -19,10 +19,10 @@ function paletteCommands() {
     for (const [label, list] of PRESETS) {
       const parts = stems.filter(s => list.includes(s.name) && !s.empty); if (!parts.length) continue;
       const removed = parts.every(s => s.mute);
-      add("Parts", `${removed ? "Bring back" : "Remove"} ${label}`, () => { parts.forEach(s => { s.mute = !removed; s.solo = false; }); applyGains(); });
+      add("Parts", `${removed ? "Bring back" : "Remove"} ${label}`, () => { setAB(false); parts.forEach(s => { s.mute = !removed; s.solo = false; }); applyGains(); });
     }
-    stems.forEach((s, i) => { if (!s.empty) add("Parts", `Solo ${STEM_INFO[s.name].label}`, () => { stems.forEach(o => o.solo = o === s ? !s.solo : false); applyGains(); }, {keys: `⇧${i + 1}`}); });
-    add("Parts", "Full mix (unmute everything)", () => { stems.forEach(s => { s.mute = s.solo = false; }); applyGains(); });
+    stems.forEach((s, i) => { if (!s.empty) add("Parts", `Solo ${STEM_INFO[s.name].label}`, () => { setAB(false); stems.forEach(o => o.solo = o === s ? !s.solo : false); applyGains(); }, {keys: `⇧${i + 1}`}); });
+    add("Parts", "Full mix (unmute everything)", () => { setAB(false); stems.forEach(s => { s.mute = s.solo = false; }); applyGains(); });
     add("Parts", abSaved ? "A/B: back to my mix" : "A/B: hear the original", () => setAB(!abSaved), {keys: "A"});
     for (const v of [0.5, 0.6, 0.7, 0.75, 0.8, 0.9, 1])
       add("Practice", `Speed ${Math.round(v * 100)}%`, () => changePractice(v, semis), {off: Math.abs(v - speed) < 0.001, hint: v === 1 ? "original" : ""});
@@ -47,7 +47,7 @@ function paletteCommands() {
       if (document.pictureInPictureEnabled) add("View", "Pop out the video (picture-in-picture)", () => $("#vidPip").click());
     }
     add("File", "Export…", openExport, {keys: "E"});
-    add("File", "Rename this song", () => $("#title").dispatchEvent(new MouseEvent("dblclick", {bubbles: true})));
+    add("File", "Rename this song", () => $("#title").ondblclick());
   }
   add("App", "Settings", () => $("#settingsBtn").click());
   add("App", "Keyboard shortcuts", () => $("#help").showModal(), {keys: "?"});

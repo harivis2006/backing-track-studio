@@ -79,7 +79,8 @@ function renderProcessing() {
   }
 
   if (j.status === "queued") {
-    const ahead = jobs.filter(x => (x.status === "queued" || x.status === "running") && x.created < j.created).length;
+    const order = x => x.queued_at ?? x.created;
+    const ahead = jobs.filter(x => x.status === "running" || (x.status === "queued" && order(x) < order(j))).length;
     $("#pPct").textContent = "…"; $("#pStage").textContent = ahead ? `Waiting — ${ahead} song${ahead > 1 ? "s" : ""} ahead in the queue` : "Starting…";
     $("#pEta").textContent = "";
   } else if (j.status === "error") {
