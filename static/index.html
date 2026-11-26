@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Backing Track Studio</title>
+<link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+<aside>
+  <div class="brand"><div class="logo"></div><h1>Backing Track Studio</h1></div>
+  <div class="sub">Split any song into instruments. Mute what you'll play.</div>
+  <form id="linkForm"><input id="linkInput" placeholder="YouTube or Spotify link…" autocomplete="off" aria-label="YouTube or Spotify link"><button>Add</button></form>
+  <div id="drop" role="button" tabindex="0"><b>Drop a song or video</b> or click to choose</div>
+  <input id="file" type="file" accept="audio/*,video/*,.m4a,.flac,.mov,.mkv,.webm" multiple hidden>
+  <input id="libSearch" placeholder="Search tracks…" aria-label="Search tracks">
+  <div id="lib"></div>
+</aside>
+<main>
+  <div id="empty">
+    <h2>Make a backing track</h2>
+    <ol>
+      <li>Paste a YouTube or Spotify link, or drop in a song or video.</li>
+      <li>It's split into vocals, sax/brass, guitar, piano, bass, drums and the rest.</li>
+      <li>Mute your part, slow it down or change key, loop the hard bit.</li>
+      <li>Hit <b>●</b> to record yourself over it, then export.</li>
+    </ol>
+    <p class="hint">Everything runs on this Mac. A 5-minute song takes about 6–7 minutes to split. Press <kbd>?</kbd> for shortcuts.</p>
+  </div>
+  <div id="studio">
+    <header>
+      <div class="transport">
+        <button id="play" title="Play / pause (Space)" aria-label="Play">▶</button>
+        <button id="rec" title="Record yourself (R)" aria-label="Record"><i></i></button>
+        <div class="meter" id="recMeter" title="Microphone level"><i></i></div>
+      </div>
+      <button class="iconbtn" id="libToggle" title="Show / hide your tracks">☰</button>
+      <div class="titles"><h2 id="title"></h2><div id="source"></div></div>
+      <div id="time"><b id="tNow">0:00</b> / <span id="tDur">0:00</span><span id="barbeat"></span></div>
+      <button class="iconbtn" id="videoToggle" title="Video: hidden → small → large (V)">Video</button>
+      <button class="iconbtn" id="settingsBtn" title="Settings">⚙︎</button>
+      <button class="iconbtn" id="helpBtn" title="Keyboard shortcuts (?)">?</button>
+    </header>
+    <div id="videoWrap"><video id="vid" muted playsinline preload="auto"></video></div>
+    <div class="toolbar">
+      <div class="group presets" id="presets"><span class="lbl">Remove</span></div>
+      <div class="sep"></div>
+      <div class="group">
+        <span class="lbl">Speed</span>
+        <div class="stepper"><button id="spDown" title="Slower ( [ )" aria-label="Slower">−</button><output id="spOut">100%</output><button id="spUp" title="Faster ( ] )" aria-label="Faster">+</button></div>
+        <span class="lbl">Key</span>
+        <div class="stepper"><button id="kDown" title="Key down ( - )" aria-label="Key down">−</button><output id="kOut">0</output><button id="kUp" title="Key up ( = )" aria-label="Key up">+</button></div>
+        <button class="iconbtn" id="practiceReset" title="Back to original speed and key" hidden>Reset</button>
+        <span id="keyName" title="Detected key. Set your instrument in ⚙︎ Settings to see it written for you."></span>
+      </div>
+      <div class="sep"></div>
+      <div class="group">
+        <button class="toggle" id="countInBtn" aria-pressed="false" title="Count in one bar before playing (C)">Count-in</button>
+        <button class="toggle" id="metroBtn" aria-pressed="false" title="Metronome click (K)">Click</button>
+        <button class="toggle" id="abBtn" aria-pressed="false" title="Compare: hear the original song with nothing removed (A)">A/B</button>
+        <span id="abNote">Hearing the original</span>
+      </div>
+      <span id="practiceStatus"></span>
+    </div>
+    <div id="rows">
+      <div id="loadingBar"></div>
+      <div class="row ruler"><div class="ctl"><span id="tempoLabel"></span><span class="zoomctl"><span id="zoomLabel"></span><button id="zoomOut" title="Zoom out (Shift+Z fits the whole song)">−</button><button id="zoomIn" title="Zoom in (Z) — or pinch / ⌘-scroll on the waveforms">+</button><button id="zoomFit" title="Show the whole song (Shift+Z)" hidden>Fit</button><button id="addMarker" title="Add a marker at the playhead (M) — or double-click the ruler"><span class="wide">+ Marker</span><span class="narrow">⚑</span></button></span></div><div class="wavewrap" style="height:32px"><canvas id="ruler"></canvas></div></div>
+      <div id="stemRows"></div>
+      <div id="takeRows"></div>
+      <div id="hoverline"></div>
+      <div id="countdown"><span></span></div>
+    </div>
+    <footer>
+      <label><input type="checkbox" id="loop"> Loop</label>
+      <span class="hint" id="loopHint">Drag across a waveform to select a section</span>
+      <button id="clearLoop" title="Clear selection">Clear</button>
+      <div class="grow"></div>
+      <label title="Double-click to reset">Master <input type="range" id="master" min="0" max="1.5" step="0.01" value="1"></label>
+      <button id="exportBtn" title="Save your backing track (E)">Export…</button>
+    </footer>
+  </div>
+</main>
+<div id="hovertip"></div>
+<div id="toasts" aria-live="polite"></div>
+<div id="offline">Can't reach Backing Track Studio — it may have stopped. Start it again with <b>run.sh</b> (or the app); this page reconnects by itself.</div>
+<dialog id="exportDlg">
+  <h3>Export</h3>
+  <div class="choices" id="fmtChoices">
+    <button class="choice" data-f="mp3" aria-checked="true"><b>MP3</b><small>Small file for your phone</small></button>
+    <button class="choice" data-f="wav" aria-checked="false"><b>WAV</b><small>Full quality</small></button>
+    <button class="choice" data-f="mp4" aria-checked="false"><b>Video</b><small>The video with your mix</small></button>
+    <button class="choice" data-f="parts" aria-checked="false"><b>Parts</b><small>Each part separately, for a DAW</small></button>
+  </div>
+  <div class="checks">
+    <label id="exLoopL"><input type="checkbox" id="exLoop"> Only the looped section</label>
+    <label id="exCountL"><input type="checkbox" id="exCount"> Start with a count-in (clicks)</label>
+    <label id="exTakesL"><input type="checkbox" id="exTakes" checked> Include my recorded takes</label>
+  </div>
+  <div id="exportSummary"></div>
+  <div class="dlgbtns"><button onclick="this.closest('dialog').close()">Cancel</button><button id="exportGo" style="background:var(--accent);color:var(--accent-ink);border:0;font-weight:600">Export</button></div>
+</dialog>
+
+<dialog id="help">
+  <h3>Keyboard shortcuts</h3>
+  <table>
+    <tr><td><kbd>Space</kbd></td><td>Play / pause</td></tr>
+    <tr><td><kbd>R</kbd></td><td>Start / stop recording yourself</td></tr>
+    <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Back / forward one bar (or 5 s if no beat was found); with <kbd>Shift</kbd>: 4 bars</td></tr>
+    <tr><td><kbd>Home</kbd> or <kbd>0</kbd></td><td>Jump to start (or start of the loop)</td></tr>
+    <tr><td><kbd>1</kbd>–<kbd>7</kbd></td><td>Mute / unmute a part (top to bottom) · with <kbd>Shift</kbd>: solo</td></tr>
+    <tr><td><kbd>L</kbd></td><td>Loop on / off</td></tr>
+    <tr><td><kbd>C</kbd> · <kbd>K</kbd></td><td>Count-in on / off · metronome click on / off</td></tr>
+    <tr><td><kbd>[</kbd> <kbd>]</kbd></td><td>Slower / faster (5% steps)</td></tr>
+    <tr><td><kbd>-</kbd> <kbd>=</kbd></td><td>Key down / up a semitone</td></tr>
+    <tr><td><kbd>V</kbd></td><td>Video: hidden → small → large</td></tr>
+    <tr><td><kbd>A</kbd></td><td>A/B: compare with the original song</td></tr>
+    <tr><td><kbd>E</kbd></td><td>Export…</td></tr>
+    <tr><td><kbd>M</kbd> · <kbd>,</kbd> <kbd>.</kbd></td><td>Add a marker · jump to previous / next marker</td></tr>
+    <tr><td><kbd>Z</kbd> · <kbd>Shift</kbd>+<kbd>Z</kbd></td><td>Zoom in (to the loop, if there is one) · show the whole song</td></tr>
+    <tr><td>Mouse</td><td>Click a waveform or the bar ruler to jump · drag to select a section (snaps to beats; hold <kbd>Alt</kbd> for free selection) · drag a section's edge to adjust it · double-click a slider to reset it · double-click a take's name to rename it · pinch or ⌘-scroll to zoom, scroll sideways to move · double-click the ruler to add a marker; Shift-click a marker to loop that section · double-click the song title to rename it</td></tr>
+  </table>
+  <div class="dlgbtns"><button onclick="this.closest('dialog').close()">Close</button></div>
+</dialog>
+
+<dialog id="settings">
+  <h3>Settings</h3>
+  <div class="field"><label for="instSel">Your instrument</label><select id="instSel"></select><small>New songs open with your part already muted, and keys are written for your instrument.</small></div>
+  <div class="field"><label for="micSel">Microphone</label><select id="micSel"><option value="">Default microphone</option></select></div>
+  <div class="field"><label>Mic level</label><div style="display:flex;gap:10px;align-items:center"><button id="micTest" class="iconbtn">Test microphone</button><div class="meter" id="testMeter" style="width:160px"><i></i></div><span id="micTestNote" class="hint"></span></div></div>
+  <div class="field"><label for="latMode">Recording timing</label>
+    <select id="latMode"><option value="auto">Automatic</option><option value="manual">Manual</option></select>
+    <small id="latInfo"></small></div>
+  <div class="field" id="latManualRow"><label for="latMs">Latency correction</label><div><input type="number" id="latMs" min="0" max="500" step="1" style="width:90px"> ms</div>
+    <small>If your takes sound late, increase this; if early, decrease it. You can also nudge each take with ◀ ▶.</small></div>
+  <div class="field"><label for="clickVol">Metronome volume</label><input type="range" id="clickVol" min="0" max="1" step="0.05"></div>
+  <div class="field"><label for="countBars">Count-in length</label><select id="countBars"><option value="1">1 bar</option><option value="2">2 bars</option></select></div>
+  <p class="hint">Tip: wear headphones when recording, otherwise the backing track leaks into your microphone.</p>
+  <div class="dlgbtns"><button id="quitBtn" style="margin-right:auto" title="Stop Backing Track Studio running in the background">Quit app</button><button onclick="this.closest('dialog').close()">Done</button></div>
+</dialog>
+
+<!-- Plain scripts sharing one global scope, loaded in this order (see static/js/README.md). -->
+<script src="/static/js/core.js"></script>
+<script src="/static/js/library.js"></script>
+<script src="/static/js/engine.js"></script>
+<script src="/static/js/tempo.js"></script>
+<script src="/static/js/recording.js"></script>
+<script src="/static/js/studio.js"></script>
+<script src="/static/js/practice.js"></script>
+<script src="/static/js/timeline.js"></script>
+<script src="/static/js/settings.js"></script>
+<script src="/static/js/keyboard.js"></script>
+<script src="/static/js/export.js"></script>
+<script src="/static/js/tools.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

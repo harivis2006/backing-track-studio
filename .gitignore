@@ -1,0 +1,13 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Your songs, AI model weights (downloaded automatically) and logs
+data/
+models/
+server.log
+
+# Editor / tool settings
+.claude/
+.DS_Store

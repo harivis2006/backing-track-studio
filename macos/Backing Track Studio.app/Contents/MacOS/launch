@@ -1,0 +1,11 @@
+#!/bin/sh
+# Backing Track Studio launcher: starts the local server (if it isn't running) and opens it in your browser.
+APP="$(cd "$(dirname "$0")/../.." && pwd)"   # .../macos/Backing Track Studio.app
+DIR="$(cd "$APP/../.." && pwd)"              # the project folder
+URL="http://localhost:8765"
+
+if curl -s -o /dev/null "$URL/api/jobs"; then open "$URL"; exit 0; fi
+cd "$DIR" || exit 1
+nohup .venv/bin/python server.py >> "$DIR/server.log" 2>&1 &
+for i in $(seq 1 60); do curl -s -o /dev/null "$URL/api/jobs" && break; sleep 0.5; done
+open "$URL"

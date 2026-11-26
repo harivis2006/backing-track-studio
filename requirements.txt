@@ -1,0 +1,23 @@
+# Python 3.12. Install with:  python3.12 -m venv .venv && .venv/bin/pip install -r requirements.txt
+# Also needed on the system: ffmpeg (brew install ffmpeg) and Node.js (yt-dlp uses it for YouTube).
+
+# web server
+fastapi==0.165.0
+uvicorn==0.54.0
+python-multipart==0.0.34
+
+# AI separation (pulls in PyTorch, librosa, soundfile, ...)
+audio-separator[cpu]==0.48.0
+audioread==3.1.0
+
+# beats & bars
+beat-this==1.1.0
+
+# slowed-down / transposed practice versions (Rubber Band)
+pedalboard==0.9.26
+
+# YouTube downloads
+yt-dlp[default]==2026.11.23
+
+# artwork
+pillow==13.0.0
